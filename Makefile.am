@@ -1,4 +1,4 @@
-bin_PROGRAMS = testambx ambxgrab
+bin_PROGRAMS = testambx ambxgrab unittest
 TESTS = unittest
 
 testambx_SOURCES = testambx.c ambxlib.c ambxlib.h

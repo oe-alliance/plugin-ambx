@@ -105,7 +105,6 @@ int ambx_open(int id)
         return -E_INIT_CONTROLLER_FAILED;
     }
 
-    printf("Starting to write...\n");
     start_transactions(controllers[id].handle);
 
     //ambx_enumerate_devices(id);
