@@ -1,28 +1,20 @@
-#ifndef GRABBER_H
-#define GRABBER_H
-
-struct Bitmap
+typedef struct _Bitmap
 {
 	const unsigned char* data;
 	int stride;
 	int width;
 	int height;
-};
-
-class Grabber
-{
-public:
-	virtual void grab() = 0;
-	virtual void done() = 0;
+} Bitmap;
 	
-	Bitmap luma;
-	Bitmap chroma;
-};
+extern Bitmap luma;
+extern Bitmap chroma;
 
-class XilleonGrabber: public Grabber
-{
-	virtual void grab();
-	virtual void done();
-};
+// Called once when starting up.
+int grabber_initialize();
+// Called at each frame, before using luma and chroma
+int grabber_begin();
+// Called when done processing luma and chroma
+int grabber_end();
+// Called on program shutdown.
+int grabber_destroy();
 
-#endif

@@ -9,4 +9,4 @@ ambxgrab_LDADD = -lusb
 
 unittest_SOURCES = unittest.c colorproc.c colorproc.h
 
-grab_SOURCES = grab.cpp xilleon.cpp
+grab_SOURCES = grab.c grabber.h grabber_@MACHINE@.c
