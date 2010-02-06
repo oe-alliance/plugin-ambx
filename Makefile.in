@@ -35,7 +35,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = testambx$(EXEEXT) ambxgrab$(EXEEXT) unittest$(EXEEXT) \
-	grab$(EXEEXT)
+	grabvid$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure AUTHORS COPYING \
@@ -56,9 +56,10 @@ am_ambxgrab_OBJECTS = ambxgrab.$(OBJEXT) ambxlib.$(OBJEXT) \
 	colorproc.$(OBJEXT)
 ambxgrab_OBJECTS = $(am_ambxgrab_OBJECTS)
 ambxgrab_DEPENDENCIES =
-am_grab_OBJECTS = grab.$(OBJEXT) grabber_@MACHINE@.$(OBJEXT)
-grab_OBJECTS = $(am_grab_OBJECTS)
-grab_LDADD = $(LDADD)
+am_grabvid_OBJECTS = grab.$(OBJEXT) grabber_@MACHINE@.$(OBJEXT) \
+	colorproc.$(OBJEXT)
+grabvid_OBJECTS = $(am_grabvid_OBJECTS)
+grabvid_LDADD = $(LDADD)
 am_testambx_OBJECTS = testambx.$(OBJEXT) ambxlib.$(OBJEXT)
 testambx_OBJECTS = $(am_testambx_OBJECTS)
 testambx_DEPENDENCIES =
@@ -72,10 +73,10 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(ambxgrab_SOURCES) $(grab_SOURCES) $(testambx_SOURCES) \
+SOURCES = $(ambxgrab_SOURCES) $(grabvid_SOURCES) $(testambx_SOURCES) \
 	$(unittest_SOURCES)
-DIST_SOURCES = $(ambxgrab_SOURCES) $(grab_SOURCES) $(testambx_SOURCES) \
-	$(unittest_SOURCES)
+DIST_SOURCES = $(ambxgrab_SOURCES) $(grabvid_SOURCES) \
+	$(testambx_SOURCES) $(unittest_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -173,7 +174,7 @@ testambx_LDADD = -lusb
 ambxgrab_SOURCES = ambxgrab.c ambxlib.c ambxlib.h colorproc.c colorproc.h
 ambxgrab_LDADD = -lusb
 unittest_SOURCES = unittest.c colorproc.c colorproc.h
-grab_SOURCES = grab.c grabber.h grabber_@MACHINE@.c
+grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h
 all: all-am
 
 .SUFFIXES:
@@ -237,9 +238,9 @@ clean-binPROGRAMS:
 ambxgrab$(EXEEXT): $(ambxgrab_OBJECTS) $(ambxgrab_DEPENDENCIES) 
 	@rm -f ambxgrab$(EXEEXT)
 	$(LINK) $(ambxgrab_LDFLAGS) $(ambxgrab_OBJECTS) $(ambxgrab_LDADD) $(LIBS)
-grab$(EXEEXT): $(grab_OBJECTS) $(grab_DEPENDENCIES) 
-	@rm -f grab$(EXEEXT)
-	$(LINK) $(grab_LDFLAGS) $(grab_OBJECTS) $(grab_LDADD) $(LIBS)
+grabvid$(EXEEXT): $(grabvid_OBJECTS) $(grabvid_DEPENDENCIES) 
+	@rm -f grabvid$(EXEEXT)
+	$(LINK) $(grabvid_LDFLAGS) $(grabvid_OBJECTS) $(grabvid_LDADD) $(LIBS)
 testambx$(EXEEXT): $(testambx_OBJECTS) $(testambx_DEPENDENCIES) 
 	@rm -f testambx$(EXEEXT)
 	$(LINK) $(testambx_LDFLAGS) $(testambx_OBJECTS) $(testambx_LDADD) $(LIBS)

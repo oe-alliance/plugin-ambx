@@ -1,4 +1,4 @@
-bin_PROGRAMS = testambx ambxgrab unittest grab
+bin_PROGRAMS = testambx ambxgrab unittest grabvid
 TESTS = unittest
 
 testambx_SOURCES = testambx.c ambxlib.c ambxlib.h
@@ -9,4 +9,4 @@ ambxgrab_LDADD = -lusb
 
 unittest_SOURCES = unittest.c colorproc.c colorproc.h
 
-grab_SOURCES = grab.c grabber.h grabber_@MACHINE@.c
+grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h

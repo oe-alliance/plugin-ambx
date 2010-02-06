@@ -18,6 +18,8 @@ int main(int argc, char** argv)
     r = grabber_begin();
     if (r != 0) return ErrorExit(r);
 
+    printf("Avg luma: %d\n", avg(luma.data, 0, luma.width, luma.stride, luma.height));
+
     r = grabber_end();
     if (r != 0) return ErrorExit(r);
 

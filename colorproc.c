@@ -1,5 +1,23 @@
 #include "colorproc.h"
 
+unsigned char avg(const unsigned char* data, int x1, int x2, int stride, int yres)
+{
+	unsigned int v = 0;
+        int x;
+        int y;
+        const unsigned char* line;
+        for (y = 0; y < yres; ++y)
+        {
+                line = data + x1 + (y * stride);
+                for (x = x1; x < x2; ++x)
+                {
+                        v += *line++;
+                }
+        }
+        v /= (x2-x1) * yres;
+        return v;
+}
+
 int avgcolor(const unsigned char* data, int x1, int x2, int stride, int yres)
 {
         unsigned int r = 0;
