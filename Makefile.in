@@ -57,13 +57,14 @@ am_ambxgrab_OBJECTS = ambxgrab.$(OBJEXT) ambxlib.$(OBJEXT) \
 ambxgrab_OBJECTS = $(am_ambxgrab_OBJECTS)
 ambxgrab_DEPENDENCIES =
 am_grabvid_OBJECTS = grab.$(OBJEXT) grabber_@MACHINE@.$(OBJEXT) \
-	colorproc.$(OBJEXT)
+	colorproc.$(OBJEXT) filehelper.$(OBJEXT)
 grabvid_OBJECTS = $(am_grabvid_OBJECTS)
 grabvid_LDADD = $(LDADD)
 am_testambx_OBJECTS = testambx.$(OBJEXT) ambxlib.$(OBJEXT)
 testambx_OBJECTS = $(am_testambx_OBJECTS)
 testambx_DEPENDENCIES =
-am_unittest_OBJECTS = unittest.$(OBJEXT) colorproc.$(OBJEXT)
+am_unittest_OBJECTS = unittest.$(OBJEXT) colorproc.$(OBJEXT) \
+	filehelper.$(OBJEXT)
 unittest_OBJECTS = $(am_unittest_OBJECTS)
 unittest_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir)
@@ -173,8 +174,8 @@ testambx_SOURCES = testambx.c ambxlib.c ambxlib.h
 testambx_LDADD = -lusb
 ambxgrab_SOURCES = ambxgrab.c ambxlib.c ambxlib.h colorproc.c colorproc.h
 ambxgrab_LDADD = -lusb
-unittest_SOURCES = unittest.c colorproc.c colorproc.h
-grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h
+unittest_SOURCES = unittest.c colorproc.c colorproc.h filehelper.h filehelper.c
+grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c
 all: all-am
 
 .SUFFIXES:
@@ -257,6 +258,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ambxgrab.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ambxlib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/colorproc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filehelper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grab.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grabber_@MACHINE@.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testambx.Po@am__quote@

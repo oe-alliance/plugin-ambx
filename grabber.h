@@ -1,6 +1,6 @@
 typedef struct _Bitmap
 {
-	const unsigned char* data;
+	unsigned char* data;
 	int stride;
 	int width;
 	int height;

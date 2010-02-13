@@ -10,9 +10,9 @@ const int stride = 32;
 
 static void createBitmap(Bitmap* bm, int stride, int width, int height)
 {
-    bm->data = malloc(stride * h);
-    bm->width = w;
-    bm->height = h;
+    bm->data = malloc(stride * height);
+    bm->width = width;
+    bm->height = height;
     bm->stride = stride;
 }
 
@@ -36,6 +36,7 @@ int grabber_begin()
 {
     int x,y;
     unsigned char* d;
+	printf("Fill\n");
     for (y=0; y < h; ++y)
     {
 	d = luma.data + (y*stride);
@@ -44,6 +45,7 @@ int grabber_begin()
 	    d[x] = (255*x)/(w-1);
     	}
     }
+	printf("Fill done\n");
     return 0;
 }
 
