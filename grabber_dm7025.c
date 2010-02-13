@@ -96,9 +96,9 @@ int grabber_begin()
 	fprintf(stderr, "Failed to map video memory\n");
 	return 1;
     }
-    const unsigned char* frame_l = frame;
-    const unsigned char* frame_c = frame + 1920*1152*5;
+    		const unsigned char* frame_chroma = frame + 1920*1152*5;
 
+		const unsigned char* frame_l;
                 const int ypart=32;
                 const int xpart=128;
                 int ysubcount = yres/32;
@@ -165,6 +165,65 @@ int grabber_begin()
                                 }
                         }
                 }
+
+                // Chrominance (half resolution)
+                ysubcount /= 2;
+                for (ysub=0; ysub<=ysubcount; ysub++)
+                {
+			const unsigned char* frame_c = frame_chroma + (ysub * 1920 * 32);
+                        for (xsub=0; xsub<xsubcount; xsub++)
+                        {
+                                // Even lines
+                                for (ytmp=0; ytmp<ypart; ytmp++)
+                                {
+                                        int extraoffset = (xres*(ytmp+(ysub*ypart)));
+                                        int destx = xsub*xpart;
+                                        int overflow = (destx + xpart) - xres;
+                                        if (overflow <= 0)
+                                        {
+                                                memcpy(chroma.data + destx + extraoffset, frame_c, xpart);
+                                        }
+                                        else if (overflow < xpart)
+                                        {
+                                                memcpy(chroma.data + destx + extraoffset, frame_c, overflow);
+                                        }
+                                        frame_c += xpart;
+                                }
+                        }
+                        ++ysub; // dirty...
+			frame_c = frame_chroma + (ysub * 1920 * 32);
+                        for (xsub=0; xsub<xsubcount; xsub++) // 1920/128=15
+                        {
+                                // Odd lines (reverts 64 byte block?)
+                                // Only luminance
+                                for (ytmp=0; ytmp<ypart; ytmp++)
+                                {
+                                        int extraoffset = (xres*(ytmp+(ysub*ypart)));
+                                        int destx = xsub*xpart;
+                                        int overflow = (destx + xpart) - xres;
+                                        if (overflow <= 0)
+                                        {
+                                                // We copy a bit too much...
+                                                memcpy(chroma.data + destx + extraoffset + 64, frame_c, 64);
+                                                memcpy(chroma.data + destx + extraoffset, frame_c + 64, 64);
+                                        }
+                                        else if (overflow < xpart)
+                                        {
+                                                if (overflow > 64)
+                                                {
+                                                        memcpy(chroma.data + destx + extraoffset + 64, frame_c, overflow-64);
+                                                        memcpy(chroma.data + destx + extraoffset, frame_c + 64, 64);
+                                                }
+                                                else
+                                                {
+                                                        memcpy(chroma.data + destx + extraoffset, frame_c + 64, overflow);
+                                                }
+                                        }
+                                        frame_c += xpart;
+                                }
+                        }
+
+		}
     munmap(frame, 1920*1152*6);
     close(mem_fd);
     return 0;

@@ -4,9 +4,8 @@ AM_INIT_AUTOMAKE()
 
 AC_ARG_WITH(machine,
         [  --with-machine=MACHINE    machine target for compilation [[dm7025,dm8000]]],
-        [MACHINE="$withval"],[MACHINE="stub"])
+        [MACHINE="$withval" CFLAGS="$CFLAGS -DMACHINE=$withval"],[MACHINE="stub"])
 AC_SUBST(MACHINE)
- 
 AC_PROG_CC
 AC_PROG_CXX
 AC_CHECK_HEADERS([usb.h])

@@ -18,6 +18,25 @@ unsigned char avg(const unsigned char* data, int x1, int x2, int stride, int yre
         return v;
 }
 
+unsigned char avg2(const unsigned char* data, int x1, int x2, int stride, int yres)
+{
+	unsigned int v = 0;
+        int x;
+        int y;
+        const unsigned char* line;
+        for (y = 0; y < yres; ++y)
+        {
+                line = data + x1 + (y * stride);
+                for (x = x1; x < x2; x += 2)
+                {
+                        v += *line;
+			line += 2;
+                }
+        }
+        v /= ((x2-x1)/2) * yres;
+        return v;
+}
+
 int avgcolor(const unsigned char* data, int x1, int x2, int stride, int yres)
 {
         unsigned int r = 0;

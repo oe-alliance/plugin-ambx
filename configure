@@ -1766,11 +1766,10 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 # Check whether --with-machine or --without-machine was given.
 if test "${with_machine+set}" = set; then
   withval="$with_machine"
-  MACHINE="$withval"
+  MACHINE="$withval" CFLAGS="$CFLAGS -DMACHINE=$withval"
 else
   MACHINE="stub"
 fi;
-
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'

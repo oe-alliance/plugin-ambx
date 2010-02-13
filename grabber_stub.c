@@ -36,7 +36,6 @@ int grabber_begin()
 {
     int x,y;
     unsigned char* d;
-	printf("Fill\n");
     for (y=0; y < h; ++y)
     {
 	d = luma.data + (y*stride);
@@ -45,7 +44,22 @@ int grabber_begin()
 	    d[x] = (255*x)/(w-1);
     	}
     }
-	printf("Fill done\n");
+    for (y=0; y < chroma.height; ++y)
+    {
+	d = chroma.data + (y*stride);
+    	for (x=0; x < w; x += 2)
+	{
+	    d[x] = 42; //(255*x)/(w-1);
+    	}
+    }
+    for (y=0; y < chroma.height; ++y)
+    {
+	d = chroma.data + (y*stride);
+    	for (x=1; x < w; x += 2)
+	{
+	    d[x] = 242; //(255*x)/(w-1);
+    	}
+    }
     return 0;
 }
 
