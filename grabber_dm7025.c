@@ -27,7 +27,7 @@ static void createBitmap(Bitmap* bm, int width, int height)
     bm->stride = (width+127) & 0xFFFFFF80; // round to multiple of 128 
     //printf("createBitmap(%dx%d) ", width, height);
     height = ((height+31)/32 + 1) * 32; // Compensate for extra data.
-    printf("allocate (%dx%d) = %d\n", bm->stride, height, bm->stride*height);
+    //printf("allocate (%dx%d) = %d\n", bm->stride, height, bm->stride*height);
     bm->data = malloc(bm->stride * height);
 }
 

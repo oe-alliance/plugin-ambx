@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <memory.h>
 #include "grabber.h"
 #include "yuvrgb.h"
 
@@ -43,25 +44,55 @@ static int saveBmp(const char* filename)
                         fwrite(video+(y*luma.width*3), luma.width*3, 1, fd2);
                 }
 
-/*
-                int x, y;
-		unsigned char* row = (unsigned char*)malloc(bmp->width * 3);
-                for (y=bmp->height-1; y>=0 ; --y) {
-			unsigned char* d = row;
-			for (x=0; x<bmp->width; ++x)
-                        {
-				unsigned char pix = bmp->data[bmp->stride*y + x];
-				*d++ = pix;
-				*d++ = pix;
-				*d++ = pix;
-			}
-			fwrite(row, bmp->width * 3, 1, fd2);
-                }
-		free(row);
-*/
 	fclose(fd2);
 	free(video);
 }
+
+static unsigned int median(const unsigned int* hist, unsigned int count)
+{
+	count /= 2;
+	const unsigned int* p = hist;
+	unsigned int sum = *p;
+	while (sum < count)
+	{
+		++p;
+		sum += *p;
+	}
+	return (p - hist);
+}
+
+static void showhist(unsigned int* hist)
+{
+    int base, i;
+    for (base = 0; base < 256; base += 16)
+    {
+	for (i = 0; i < 16; ++i)
+	{
+		printf("%4d", hist[base + i]);
+	}
+	printf("\n");
+    }
+}
+
+void printRGB(int y, int u, int v)
+{
+   // Formulas from Wikipedia...
+   int lum = 9535 * (y-16);
+   v -= 128;
+   u -= 128;
+#if MACHINE==dm7025
+   int b = (lum + (13074 * v)) >> 13;
+   int g = (lum - (6660 * v) - (3202 * u)) >> 13;
+   int r = (lum + (16531 * u)) >> 13;
+#else
+   int r = (lum + (13074 * v)) >> 13;
+   int g = (lum - (6660 * v) - (3202 * u)) >> 13;
+   int b = (lum + (16531 * u)) >> 13;
+#endif
+
+   printf("(y=%d u=%d v=%d) -> (r=%d, g=%d, b=%d)", y, u, v, r, g, b);
+}
+
 
 int main(int argc, char** argv)
 {
@@ -73,11 +104,28 @@ int main(int argc, char** argv)
     r = grabber_begin();
     if (r != 0) return ErrorExit(r);
 
-    printf("Luma size: %dx%d (stride: %d)\n", luma.width, luma.height, luma.stride);
-    printf("Avg luma: %d\n", avg(luma.data, 0, luma.width, luma.stride, luma.height));
-    printf("Chroma size: %dx%d (stride: %d)\n", chroma.width, chroma.height, chroma.stride);
-    printf("Avg ch-U: %d\n", avg2(chroma.data, 0, chroma.width, chroma.stride, chroma.height));
-    printf("Avg ch-V: %d\n", avg2(chroma.data + 1, 0, chroma.width, chroma.stride, chroma.height));
+    //printf("Luma size: %dx%d (stride: %d)\n", luma.width, luma.height, luma.stride);
+    int avgY = avg(luma.data, 0, luma.width, luma.stride, luma.height);
+    printf("Avg luma: %d\n", avgY);
+    //printf("Chroma size: %dx%d (stride: %d)\n", chroma.width, chroma.height, chroma.stride);
+    //printf("Avg ch-U: %d\n", avg2(chroma.data, 0, chroma.width, chroma.stride, chroma.height));
+    //printf("Avg ch-V: %d\n", avg2(chroma.data + 1, 0, chroma.width, chroma.stride, chroma.height));
+
+    unsigned int hist[256] = {0};
+    histogram2(chroma.data, 0, chroma.width, chroma.stride, chroma.height, hist);
+    int mU = median(hist, chroma.width*chroma.height/2);
+    memset(hist, 0, sizeof(hist));
+    histogram2(chroma.data+1, 0, chroma.width, chroma.stride, chroma.height, hist);
+    int mV = median(hist, chroma.width*chroma.height/2);
+
+    printf("Median U=%d V=%d\n", mU, mV);
+    //showhist(hist);
+    printRGB(avgY, mU, mV);
+    printf("\nLeftTop pixel: ");
+    printRGB(luma.data[0], chroma.data[0], chroma.data[1]);
+    printf("\npixel at 100,100: ");
+    printRGB(luma.data[100*luma.stride+100], chroma.data[50*chroma.stride+100], chroma.data[50*chroma.stride+101]);
+    printf("\n");
 
     saveBmp("/tmp/tmp.bmp");
 
