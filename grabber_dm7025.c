@@ -27,10 +27,10 @@ static void createBitmap(Bitmap* bm, int width, int height)
     bm->stride = width;
 
     //printf("createBitmap(%dx%d) ", width, height);
-    width = ((width-1) / 128 + 1) * 128;
-    height = ((height-1)/32 + 1) * 32 + 1; // Compensate for extra data.
+    width = ((width+127) / 128) * 128;
+    height = ((height+31)/32 + 1) * 32; // Compensate for extra data.
     //printf("allocate (%dx%d) = %d\n", width, height, width*height);
-    bm->data = malloc(width * height * 2); // HACK!
+    bm->data = malloc(width * height);
 }
 
 static void destroyBitmap(Bitmap* bm)
@@ -101,14 +101,14 @@ int grabber_begin()
 		const unsigned char* frame_l;
                 const int ypart=32;
                 const int xpart=128;
-                int ysubcount = yres/32;
-                int ysubchromacount=yres/64;
-		int xsubcount = (xres-1)/128 + 1;
+                int ysubcount = (yres+31) / 32;
+                int ysubchromacount = ysubcount/2;
+		int xsubcount = (xres+127) / 128;
 
                 int xtmp,ytmp,ysub,xsub;
 
                 // "decode" luma/chroma, there are 128x32pixel blocks inside the decoder mem
-                for (ysub=0; ysub<=ysubcount; ysub++)
+                for (ysub=0; ysub<ysubcount; ysub++)
                 {
 			frame_l = frame + (ysub * 1920 * 32);
                         for (xsub=0; xsub<xsubcount; xsub++)
@@ -167,8 +167,7 @@ int grabber_begin()
                 }
 
                 // Chrominance (half resolution)
-                ysubcount /= 2;
-                for (ysub=0; ysub<=ysubcount; ysub++)
+                for (ysub=0; ysub < ysubchromacount; ysub++)
                 {
 			const unsigned char* frame_c = frame_chroma + (ysub * 1920 * 32);
                         for (xsub=0; xsub<xsubcount; xsub++)
