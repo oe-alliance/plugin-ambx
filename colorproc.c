@@ -37,6 +37,22 @@ unsigned char avg2(const unsigned char* data, int x1, int x2, int stride, int yr
         return v;
 }
 
+void histogram2(const unsigned char* data, int x1, int x2, int stride, int yres, unsigned int* result)
+{
+        int x;
+        int y;
+        const unsigned char* line;
+        for (y = 0; y < yres; ++y)
+        {
+                line = data + x1 + (y * stride);
+                for (x = x1; x < x2; x += 2)
+                {
+                        ++result[*line];
+                        line += 2;
+                }
+        }
+}
+
 int avgcolor(const unsigned char* data, int x1, int x2, int stride, int yres)
 {
         unsigned int r = 0;

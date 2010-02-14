@@ -20,7 +20,6 @@ static int testcolorproc()
 	}
 
 	int colors[5];
-	printf("Getting colors\n");
 	getcolors(colors, bitmap, xres, yres);
 
 	for (i=0; i<5; ++i)
@@ -36,6 +35,27 @@ static int testcolorproc()
 
 #define ASSERTEQUAL(a,b) \
 	if (a != b) { printf("Fail:" #a " != " #b ".\n"); return 1; }
+
+static int testcolorproc2()
+{
+	unsigned int result[256] = {0};
+	unsigned char bitmap[5*4] =
+		{
+			1, 2, 3, 4, 42,
+			1, 2, 3, 4, 42, 
+			5, 5, 5, 5, 42,
+			0, 0, 9, 9, 42
+		};
+	histogram2(bitmap, 0, 4, 5, 4, result);
+	int i;
+	ASSERTEQUAL(result[0], 1);
+	ASSERTEQUAL(result[1], 2);
+	ASSERTEQUAL(result[2], 0);
+	ASSERTEQUAL(result[5], 2);
+	ASSERTEQUAL(result[42], 0);
+	return 0;	
+}
+
 
 static int testfilehelper()
 {
@@ -62,6 +82,7 @@ int main(int argc, char** argv)
 {
 	int result = 0;
 	result |= testcolorproc();
+	result |= testcolorproc2();
 	result |= testfilehelper();
 	return result;
 }
