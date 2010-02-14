@@ -24,13 +24,11 @@ static void createBitmap(Bitmap* bm, int width, int height)
 {
     bm->width = width;
     bm->height = height;
-    bm->stride = width;
-
+    bm->stride = (width+127) & 0xFFFFFF80; // round to multiple of 128 
     //printf("createBitmap(%dx%d) ", width, height);
-    width = ((width+127) / 128) * 128;
     height = ((height+31)/32 + 1) * 32; // Compensate for extra data.
-    //printf("allocate (%dx%d) = %d\n", width, height, width*height);
-    bm->data = malloc(width * height);
+    printf("allocate (%dx%d) = %d\n", bm->stride, height, bm->stride*height);
+    bm->data = malloc(bm->stride * height);
 }
 
 static void destroyBitmap(Bitmap* bm)
@@ -116,18 +114,10 @@ int grabber_begin()
                                 // Even lines
                                 for (ytmp=0; ytmp<ypart; ytmp++)
                                 {
-                                        int extraoffset = (xres*(ytmp+(ysub*ypart)));
-                                        int destx = xsub*xpart;
-                                        int overflow = (destx + xpart) - xres;
-                                        if (overflow <= 0)
-                                        {
-                                                // We copy a bit too much...
-                                                memcpy(luma.data + destx + extraoffset, frame_l, xpart);
-                                        }
-                                        else if (overflow < xpart)
-                                        {
-                                                memcpy(luma.data + destx + extraoffset, frame_l, overflow);
-                                        }
+                                        int extraoffset = (luma.stride*(ytmp+(ysub*ypart)));
+                                        int destx = xsub * xpart;
+                                        // We copy a bit too much...
+                                        memcpy(luma.data + destx + extraoffset, frame_l, xpart);
                                         frame_l += xpart;
                                 }
                         }
@@ -140,27 +130,11 @@ int grabber_begin()
                                 // Only luminance
                                 for (ytmp=0; ytmp<ypart; ytmp++)
                                 {
-                                        int extraoffset = (xres*(ytmp+(ysub*ypart)));
+                                        int extraoffset = (luma.stride*(ytmp+(ysub*ypart)));
                                         int destx = xsub*xpart;
-                                        int overflow = (destx + xpart) - xres;
-                                        if (overflow <= 0)
-                                        {
-                                                // We copy a bit too much...
-                                                memcpy(luma.data + destx + extraoffset + 64, frame_l, 64);
-                                                memcpy(luma.data + destx + extraoffset, frame_l + 64, 64);
-                                        }
-                                        else if (overflow < xpart)
-                                        {
-                                                if (overflow > 64)
-                                                {
-                                                        memcpy(luma.data + destx + extraoffset + 64, frame_l, overflow-64);
-                                                        memcpy(luma.data + destx + extraoffset, frame_l + 64, 64);
-                                                }
-                                                else
-                                                {
-                                                        memcpy(luma.data + destx + extraoffset, frame_l + 64, overflow);
-                                                }
-                                        }
+                                        // We copy a bit too much...
+                                        memcpy(luma.data + destx + extraoffset + 64, frame_l, 64);
+                                        memcpy(luma.data + destx + extraoffset, frame_l + 64, 64);
                                         frame_l += xpart;
                                 }
                         }
@@ -170,22 +144,14 @@ int grabber_begin()
                 for (ysub=0; ysub < ysubchromacount; ysub++)
                 {
 			const unsigned char* frame_c = frame_chroma + (ysub * 1920 * 32);
-                        for (xsub=0; xsub<xsubcount; xsub++)
+                        for (xsub=0; xsub < xsubcount; xsub++)
                         {
                                 // Even lines
                                 for (ytmp=0; ytmp<ypart; ytmp++)
                                 {
-                                        int extraoffset = (xres*(ytmp+(ysub*ypart)));
+                                        int extraoffset = (chroma.stride*(ytmp+(ysub*ypart)));
                                         int destx = xsub*xpart;
-                                        int overflow = (destx + xpart) - xres;
-                                        if (overflow <= 0)
-                                        {
-                                                memcpy(chroma.data + destx + extraoffset, frame_c, xpart);
-                                        }
-                                        else if (overflow < xpart)
-                                        {
-                                                memcpy(chroma.data + destx + extraoffset, frame_c, overflow);
-                                        }
+                                        memcpy(chroma.data + destx + extraoffset, frame_c, xpart);
                                         frame_c += xpart;
                                 }
                         }
@@ -197,27 +163,11 @@ int grabber_begin()
                                 // Only luminance
                                 for (ytmp=0; ytmp<ypart; ytmp++)
                                 {
-                                        int extraoffset = (xres*(ytmp+(ysub*ypart)));
+                                        int extraoffset = (chroma.stride*(ytmp+(ysub*ypart)));
                                         int destx = xsub*xpart;
-                                        int overflow = (destx + xpart) - xres;
-                                        if (overflow <= 0)
-                                        {
-                                                // We copy a bit too much...
-                                                memcpy(chroma.data + destx + extraoffset + 64, frame_c, 64);
-                                                memcpy(chroma.data + destx + extraoffset, frame_c + 64, 64);
-                                        }
-                                        else if (overflow < xpart)
-                                        {
-                                                if (overflow > 64)
-                                                {
-                                                        memcpy(chroma.data + destx + extraoffset + 64, frame_c, overflow-64);
-                                                        memcpy(chroma.data + destx + extraoffset, frame_c + 64, 64);
-                                                }
-                                                else
-                                                {
-                                                        memcpy(chroma.data + destx + extraoffset, frame_c + 64, overflow);
-                                                }
-                                        }
+                                        // We copy a bit too much...
+                                        memcpy(chroma.data + destx + extraoffset + 64, frame_c, 64);
+                                        memcpy(chroma.data + destx + extraoffset, frame_c + 64, 64);
                                         frame_c += xpart;
                                 }
                         }
