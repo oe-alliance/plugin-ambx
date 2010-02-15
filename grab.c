@@ -76,20 +76,8 @@ static void showhist(unsigned int* hist)
 
 void printRGB(int y, int u, int v)
 {
-   // Formulas from Wikipedia...
-   int lum = 9535 * (y-16);
-   v -= 128;
-   u -= 128;
-#if COLOR_BGR
-   int b = (lum + (13074 * v)) >> 13;
-   int g = (lum - (6660 * v) - (3202 * u)) >> 13;
-   int r = (lum + (16531 * u)) >> 13;
-#else
-   int r = (lum + (13074 * v)) >> 13;
-   int g = (lum - (6660 * v) - (3202 * u)) >> 13;
-   int b = (lum + (16531 * u)) >> 13;
-#endif
-
+   int r, g, b;
+   YUV2RGB(y,u,v, &r,&g,&b);
    printf("(y=%d u=%d v=%d) -> (r=%d, g=%d, b=%d)", y, u, v, r, g, b);
 }
 

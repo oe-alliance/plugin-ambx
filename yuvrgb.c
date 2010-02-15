@@ -100,3 +100,20 @@ void YUVtoRGB(unsigned char *video, Bitmap* bmpLuma, Bitmap* bmpChroma)
 	}
 }
 
+void YUV2RGB(int y, int u, int v, int *r, int *g, int *b)
+{
+   // Formulas from Wikipedia...
+   int lum = 9535 * (y-16);
+   v -= 128;
+   u -= 128;
+#if COLOR_BGR
+   *b = (lum + (13074 * v)) >> 13;
+   *g = (lum - (6660 * v) - (3202 * u)) >> 13;
+   *r = (lum + (16531 * u)) >> 13;
+#else
+   *r = (lum + (13074 * v)) >> 13;
+   *g = (lum - (6660 * v) - (3202 * u)) >> 13;
+   *b = (lum + (16531 * u)) >> 13;
+#endif
+}
+
