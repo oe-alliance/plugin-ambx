@@ -80,7 +80,7 @@ void printRGB(int y, int u, int v)
    int lum = 9535 * (y-16);
    v -= 128;
    u -= 128;
-#if MACHINE==dm7025
+#if COLOR_BGR
    int b = (lum + (13074 * v)) >> 13;
    int g = (lum - (6660 * v) - (3202 * u)) >> 13;
    int r = (lum + (16531 * u)) >> 13;

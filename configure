@@ -1766,11 +1766,19 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 # Check whether --with-machine or --without-machine was given.
 if test "${with_machine+set}" = set; then
   withval="$with_machine"
-  MACHINE="$withval" CFLAGS="$CFLAGS -DMACHINE=$withval"
+  MACHINE="$withval"
 else
   MACHINE="stub"
 fi;
 
+if test "${MACHINE}" = "dm7025"
+then
+
+cat >>confdefs.h <<\_ACEOF
+#define COLOR_BGR 1
+_ACEOF
+
+fi
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'

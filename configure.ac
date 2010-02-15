@@ -4,8 +4,12 @@ AM_INIT_AUTOMAKE()
 
 AC_ARG_WITH(machine,
         [  --with-machine=MACHINE    machine target for compilation [[dm7025,dm8000]]],
-        [MACHINE="$withval" CFLAGS="$CFLAGS -DMACHINE=$withval"],[MACHINE="stub"])
+        [MACHINE="$withval"],[MACHINE="stub"])
 AC_SUBST(MACHINE)
+if test "${MACHINE}" = "dm7025"
+then
+  AC_DEFINE(COLOR_BGR,1,[Use BGR colorspace])
+fi
 AC_PROG_CC
 AC_PROG_CXX
 AC_CHECK_HEADERS([usb.h])

@@ -53,7 +53,7 @@ void YUVtoRGB(unsigned char *video, Bitmap* bmpLuma, Bitmap* bmpChroma)
 			int U=chroma[t++];
 			int V=chroma[t++];
 
-#if MACHINE==dm7025
+#if COLOR_BGR
 			//on xilleon use bgr instead of rgb so simply swap BV and RU
 			int BV=yuv2rgbtable_ru[U];
 			int GU=yuv2rgbtable_gu[U];
