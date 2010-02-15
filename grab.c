@@ -104,28 +104,33 @@ int main(int argc, char** argv)
     r = grabber_begin();
     if (r != 0) return ErrorExit(r);
 
-    //printf("Luma size: %dx%d (stride: %d)\n", luma.width, luma.height, luma.stride);
-    int avgY = avg(luma.data, 0, luma.width, luma.stride, luma.height);
-    printf("Avg luma: %d\n", avgY);
-    //printf("Chroma size: %dx%d (stride: %d)\n", chroma.width, chroma.height, chroma.stride);
-    //printf("Avg ch-U: %d\n", avg2(chroma.data, 0, chroma.width, chroma.stride, chroma.height));
-    //printf("Avg ch-V: %d\n", avg2(chroma.data + 1, 0, chroma.width, chroma.stride, chroma.height));
+    int i;
+    int x2 = 0;
+    unsigned int hist[256];
+    for (i = 1; i <= 5; ++i) // 5 regions from left to right
+    {
+	int x1 = x2;
+	x2 = ((i * luma.width) / 5) & 0xFFFFFFFE; // even pixels only (for chroma)
+        //printf("Luma size: %dx%d (stride: %d)\n", luma.width, luma.height, luma.stride);
+    	int avgY = avg(luma.data, x1, x2, luma.stride, luma.height);
 
-    unsigned int hist[256] = {0};
-    histogram2(chroma.data, 0, chroma.width, chroma.stride, chroma.height, hist);
-    int mU = median(hist, chroma.width*chroma.height/2);
-    memset(hist, 0, sizeof(hist));
-    histogram2(chroma.data+1, 0, chroma.width, chroma.stride, chroma.height, hist);
-    int mV = median(hist, chroma.width*chroma.height/2);
+    	memset(hist, 0, sizeof(hist));
+    	histogram2(chroma.data, 0, chroma.width, chroma.stride, chroma.height, hist);
+    	int mU = median(hist, chroma.width*chroma.height/2);
+    	memset(hist, 0, sizeof(hist));
+    	histogram2(chroma.data+1, 0, chroma.width, chroma.stride, chroma.height, hist);
+    	int mV = median(hist, chroma.width*chroma.height/2);
 
-    printf("Median U=%d V=%d\n", mU, mV);
-    //showhist(hist);
-    printRGB(avgY, mU, mV);
+        printf("Region (%3d..%3d) avgY=%d mU=%d mV=%d ", x1, x2, avgY, mU, mV);
+    	printRGB(avgY, mU, mV);
+	printf("\n");
+    }
+/*
     printf("\nLeftTop pixel: ");
     printRGB(luma.data[0], chroma.data[0], chroma.data[1]);
     printf("\npixel at 100,100: ");
     printRGB(luma.data[100*luma.stride+100], chroma.data[50*chroma.stride+100], chroma.data[50*chroma.stride+101]);
-    printf("\n");
+*/
 
     saveBmp("/tmp/tmp.bmp");
 
