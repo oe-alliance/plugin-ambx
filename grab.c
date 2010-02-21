@@ -76,9 +76,8 @@ static void showhist(unsigned int* hist)
 
 void printRGB(int y, int u, int v)
 {
-   int r, g, b;
-   YUV2RGB(y,u,v, &r,&g,&b);
-   printf("(y=%d u=%d v=%d) -> (r=%d, g=%d, b=%d)", y, u, v, r, g, b);
+   int c = YUV2RGB(y,u,v);
+   printf("(y=%d u=%d v=%d) -> #%.6x (r=%d, g=%d, b=%d)", y, u, v, c, c >> 16, (c >> 8) & 0xff, c & 0xff);
 }
 
 

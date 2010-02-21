@@ -35,7 +35,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = testambx$(EXEEXT) ambxgrab$(EXEEXT) unittest$(EXEEXT) \
-	grabvid$(EXEEXT)
+	grabvid$(EXEEXT) ambx$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure AUTHORS COPYING \
@@ -52,6 +52,11 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
+am_ambx_OBJECTS = ambx.$(OBJEXT) grabber_@MACHINE@.$(OBJEXT) \
+	colorproc.$(OBJEXT) filehelper.$(OBJEXT) yuvrgb.$(OBJEXT) \
+	ambxlib.$(OBJEXT)
+ambx_OBJECTS = $(am_ambx_OBJECTS)
+ambx_DEPENDENCIES =
 am_ambxgrab_OBJECTS = ambxgrab.$(OBJEXT) ambxlib.$(OBJEXT) \
 	colorproc.$(OBJEXT)
 ambxgrab_OBJECTS = $(am_ambxgrab_OBJECTS)
@@ -74,9 +79,9 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(ambxgrab_SOURCES) $(grabvid_SOURCES) $(testambx_SOURCES) \
-	$(unittest_SOURCES)
-DIST_SOURCES = $(ambxgrab_SOURCES) $(grabvid_SOURCES) \
+SOURCES = $(ambx_SOURCES) $(ambxgrab_SOURCES) $(grabvid_SOURCES) \
+	$(testambx_SOURCES) $(unittest_SOURCES)
+DIST_SOURCES = $(ambx_SOURCES) $(ambxgrab_SOURCES) $(grabvid_SOURCES) \
 	$(testambx_SOURCES) $(unittest_SOURCES)
 ETAGS = etags
 CTAGS = ctags
@@ -176,6 +181,8 @@ ambxgrab_SOURCES = ambxgrab.c ambxlib.c ambxlib.h colorproc.c colorproc.h
 ambxgrab_LDADD = -lusb
 unittest_SOURCES = unittest.c colorproc.c colorproc.h filehelper.h filehelper.c
 grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c
+ambx_SOURCES = ambx.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c ambxlib.c ambxlib.h
+ambx_LDADD = -lusb
 all: all-am
 
 .SUFFIXES:
@@ -236,6 +243,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+ambx$(EXEEXT): $(ambx_OBJECTS) $(ambx_DEPENDENCIES) 
+	@rm -f ambx$(EXEEXT)
+	$(LINK) $(ambx_LDFLAGS) $(ambx_OBJECTS) $(ambx_LDADD) $(LIBS)
 ambxgrab$(EXEEXT): $(ambxgrab_OBJECTS) $(ambxgrab_DEPENDENCIES) 
 	@rm -f ambxgrab$(EXEEXT)
 	$(LINK) $(ambxgrab_LDFLAGS) $(ambxgrab_OBJECTS) $(ambxgrab_LDADD) $(LIBS)
@@ -255,6 +265,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ambx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ambxgrab.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ambxlib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/colorproc.Po@am__quote@
