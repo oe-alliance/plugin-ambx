@@ -3,6 +3,7 @@
 
 #include "colorproc.h"
 #include "filehelper.h"
+#include "Fader.h"
 
 static int testcolorproc()
 {
@@ -78,11 +79,59 @@ static int testfilehelper()
 	return 0;
 }
 
+static int testfader()
+{
+        Fader f;
+	fader_init(&f, 3);
+
+        f.target[0] = 0;
+        f.target[1] = 128;
+        f.target[2] = 255;
+
+        fader_commit(&f, 0, 0);
+        fader_update(&f, 0);
+
+        ASSERTEQUAL(f.current[0], 0);
+        ASSERTEQUAL(f.current[1], 128);
+        ASSERTEQUAL(f.current[2], 255);
+        f.target[0] = 128;
+        f.target[1] = 255;
+        f.target[2] = 0;
+
+        fader_commit(&f, 0, 1000);
+
+        fader_update(&f, 500);
+
+        ASSERTEQUAL(f.current[0], 64);
+        ASSERTEQUAL(f.current[1], 191);
+        ASSERTEQUAL(f.current[2], 127);
+
+        fader_commit(&f, 1000, 2000);
+        fader_update(&f, 1000);
+
+        ASSERTEQUAL(f.current[1], 191);
+
+        fader_update(&f, 1500);
+
+        ASSERTEQUAL(f.current[0], 96);
+        ASSERTEQUAL(f.current[1], 223);
+        ASSERTEQUAL(f.current[2], 63);
+
+        fader_update(&f, 2000);
+
+        ASSERTEQUAL(f.current[0], 128);
+        ASSERTEQUAL(f.current[1],255);
+        ASSERTEQUAL(f.current[2], 0);
+
+        return 0;
+}
+
 int main(int argc, char** argv)
 {
 	int result = 0;
 	result |= testcolorproc();
 	result |= testcolorproc2();
 	result |= testfilehelper();
+	result |= testfader();
 	return result;
 }

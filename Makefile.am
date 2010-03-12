@@ -7,9 +7,9 @@ testambx_LDADD = -lusb
 ambxgrab_SOURCES = ambxgrab.c ambxlib.c ambxlib.h colorproc.c colorproc.h
 ambxgrab_LDADD = -lusb
 
-unittest_SOURCES = unittest.c colorproc.c colorproc.h filehelper.h filehelper.c
+unittest_SOURCES = unittest.c colorproc.c colorproc.h filehelper.h filehelper.c Fader.h Fader.c
 
 grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c
-ambx_SOURCES = ambx.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c ambxlib.c ambxlib.h
+ambx_SOURCES = ambx.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c ambxlib.c ambxlib.h Fader.c Fader.h
 ambx_LDADD = -lusb
 
