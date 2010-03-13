@@ -29,9 +29,9 @@ static void createBitmap(Bitmap* bm, int width, int height)
     bm->width = width;
     bm->height = height;
     bm->stride = width; 
-    printf("createBitmap(%dx%d) ", width, height);
+    //printf("createBitmap(%dx%d) ", width, height);
     height = height;
-    printf("allocate (%dx%d) = %d\n", bm->stride, height, bm->stride*height);
+    //printf("allocate (%dx%d) = %d\n", bm->stride, height, bm->stride*height);
     bm->data = malloc(bm->stride * height);
 }
 
@@ -92,7 +92,6 @@ int grabber_begin()
         fprintf(stderr, "Can't open /dev/mem \n");
         return 1;
     }
-printf("DMA start\n");
                 // grab brcm7401 pic from decoder memory
                 const unsigned char* data = (unsigned char*)mmap(0, 100, PROT_READ, MAP_SHARED, mem_fd, 0x10100000);
                 if(!data)
@@ -124,7 +123,6 @@ printf("DMA start\n");
                                 fprintf(stderr, "Mainmemory: <Memmapping failed> DMA control\n");
                                 return 1;
                 }
-printf("DMA transferring\n");
 
                 int i = 0;
                 int tmp_len = DMA_BLOCKSIZE;
@@ -156,14 +154,12 @@ printf("DMA transferring\n");
                  }
 
                 munmap((void *)mem_dma, 0x1000);
-printf("Decoding video\n");
                 memory_tmp+=0x1000;
                 const int chr_luma_stride = 0x40;
                 int xsub=chr_luma_stride;
                 // decode luma & chroma plane or lets say sort it
 		int xtmp;
 		int ytmp;
-		int dat1 = 0;
 		int t = 0;
 		int t2 = 0;
                 for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
@@ -171,32 +167,35 @@ printf("Decoding video\n");
                         if ((stride-xtmp) <= chr_luma_stride)
                                 xsub=stride-xtmp;
 
-                        dat1=xtmp;
+                        int dat1=xtmp;
                         for (ytmp = 0; ytmp < yres; ytmp++)
                         {
                                 memcpy(luma.data+dat1,memory_tmp+t,xsub); // luma
                                 t+=chr_luma_stride;
                                 dat1+=stride;
                         }
+			// Skip the invisible lines
+			t += (ofs - yres) * chr_luma_stride;
                 }
 		xsub=chr_luma_stride;
-		ofs2 = yres >> 1; // ofs is larger than yres
+		int yres2 = yres >> 1; // ofs is larger than yres
                 for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
                 {
                         if ((stride-xtmp) <= chr_luma_stride)
                                 xsub=stride-xtmp;
 
-                        dat1=xtmp;
-                        for (ytmp = 0; ytmp < ofs2; ytmp++) 
+                        int dat1=xtmp;
+                        for (ytmp = 0; ytmp < yres2; ytmp++) 
                         {
                                 memcpy(chroma.data+dat1,memory_tmp+offset+t2,xsub); // chroma
                                 t2+=chr_luma_stride;
                                 dat1+=stride;
                         }
+                        // Skip the invisible lines
+                        t += (ofs2 - yres2) * chr_luma_stride;
                 }
                 munmap(memory_tmp - 0x1000, DMA_BLOCKSIZE + 0x1000); // compensate for += above (bug in aio)
                 int count = (stride*yres) >> 2;
-printf("Swapping (%d x %d) %d bytes luma\n", stride, ofs, count << 2);
                 unsigned char* p = luma.data;
                 for (t=count; t != 0; --t)
                 {
@@ -205,8 +204,7 @@ printf("Swapping (%d x %d) %d bytes luma\n", stride, ofs, count << 2);
 			q = p[1]; p[1] = p[2]; p[2] = q;
                         p += 4;
                 }
-                count = (stride*ofs2) >> 2;
-printf("Swapping %d bytes chroma\n", count << 2);
+                count = (stride*yres2) >> 2;
                 p = chroma.data;
                 for (t=count; t != 0; --t)
                 {
@@ -216,9 +214,7 @@ printf("Swapping %d bytes chroma\n", count << 2);
                         p += 4;
                 }
 
-
     close(mem_fd);
-printf("Done\n");
     return 0;
 }
 
