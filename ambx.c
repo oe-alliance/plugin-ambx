@@ -67,24 +67,25 @@ static int grabLoop()
         for (i = 1; i <= 5; ++i) // 5 regions from left to right
         {
 	    // speed up by processing only half the lines, gives "purple"!
-#	    define SPEEDSHIFT 0
+#	    define SPEEDSHIFT_LUMA 4
+#	    define SPEEDSHIFT_CHROMA 2
+
     	    int x1 = x2;
 	    x2 = ((i * luma.width) / 5) & 0xFFFFFFFE; // even pixels only (for chroma)
             //printf("Luma size: %dx%d (stride: %d)\n", luma.width, luma.height, luma.stride);
-    	    int avgY = avg(luma.data, x1, x2, luma.stride << SPEEDSHIFT, luma.height >> SPEEDSHIFT);
+    	    int avgY = avg(luma.data, x1, x2, luma.stride << SPEEDSHIFT_LUMA, luma.height >> SPEEDSHIFT_LUMA);
 
     	    memset(hist, 0, sizeof(hist));
-    	    histogram2(chroma.data, 0, chroma.width, chroma.stride << SPEEDSHIFT, chroma.height >> SPEEDSHIFT, hist);
-    	    int mU = median(hist, chroma.width*chroma.height/2);
+	    int chromacount = (chroma.width*chroma.height/2) >> SPEEDSHIFT_CHROMA;
+    	    histogram2(chroma.data, 0, chroma.width, chroma.stride << SPEEDSHIFT_CHROMA, chroma.height >> SPEEDSHIFT_CHROMA, hist);
+    	    int mU = median(hist, chromacount);
     	    memset(hist, 0, sizeof(hist));
-    	    histogram2(chroma.data+1, 0, chroma.width, chroma.stride << SPEEDSHIFT, chroma.height >> SPEEDSHIFT, hist);
-    	    int mV = median(hist, chroma.width*chroma.height/2);
+    	    histogram2(chroma.data+1, 0, chroma.width, chroma.stride << SPEEDSHIFT_CHROMA, chroma.height >> SPEEDSHIFT_CHROMA, hist);
+    	    int mV = median(hist, chromacount);
 
-            //printf("Region (%3d..%3d) avgY=%d mU=%d mV=%d ", x1, x2, avgY, mU, mV);
-    	    //printRGB(avgY, mU, mV);
-	    //printf("\n");
+            // printf("Region (%3d..%3d) avgY=%d mU=%d mV=%d color=#%06x\n", x1, x2, avgY, mU, mV, YUV2RGB(avgY, mU, mV));
 		
-	    grabColors[i] = YUV2RGB(avgY, mU, mV);
+	    grabColors[i-1] = YUV2RGB(avgY, mU, mV);
 	}
         r = grabber_end();
 	grabDone(); // Broadcast that we have finished
