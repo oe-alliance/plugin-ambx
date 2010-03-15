@@ -50,12 +50,13 @@ static int grabLoop()
     int r;
     r = grabber_initialize();
     if (r != 0) return ErrorExit(r);
-
+#ifdef SHOW_FPS
     int fpsCount = 0;
     suseconds_t elapsed = 0;
     struct timeval starttime;
     struct timeval now;
     gettimeofday(&starttime, NULL);
+#endif
     while(!terminate)
     {
         r = grabber_begin();
@@ -91,6 +92,7 @@ static int grabLoop()
 	grabDone(); // Broadcast that we have finished
         if (r != 0) return ErrorExit(r);
 
+#ifdef SHOW_FPS
   	gettimeofday(&now, NULL);
 	elapsed += (now.tv_sec - starttime.tv_sec) * 1000000;
 	elapsed += now.tv_usec;
@@ -103,6 +105,7 @@ static int grabLoop()
 		fpsCount = 0;
  		elapsed = 0;
         }
+#endif
     }
 
     r = grabber_destroy();
