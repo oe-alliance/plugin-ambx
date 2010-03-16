@@ -9,6 +9,8 @@
 #include "grabber.h"
 #include "yuvrgb.h"
 
+static const int faderSpeed = 250; // in ms
+
 static int ErrorExit(int code)
 {
   fprintf(stderr, "Fatal error code %d\n", code);
@@ -195,7 +197,7 @@ int main(int argc, char** argv)
 			fader.target[3*i    ] = (byte)((updateColors[i] >> 16) & 0xFF);
 			fader.target[3*i + 1] = (byte)((updateColors[i] >> 8) & 0xFF);
 			fader.target[3*i + 2] = (byte)(updateColors[i] & 0xFF);
-			fader_commit(&fader, now, now + 500);
+			fader_commit(&fader, now, now + faderSpeed);
 		}
 	}	
 	pthread_mutex_unlock(&mutex); 
