@@ -1,15 +1,25 @@
-bin_PROGRAMS = testambx ambxgrab unittest grabvid ambx
+bin_PROGRAMS = testambx unittest grabvid ambxd
+lib_LTLIBRARIES = libgrabproc.la libambx.la
 TESTS = unittest
 
-testambx_SOURCES = testambx.c ambxlib.c ambxlib.h
-testambx_LDADD = -lusb
+libgrabproc_includedir = $(includedir)/grabproc
+libgrabproc_include_HEADERS = grabber.h colorproc.h yuvrgb.h
+libambx_includedir = $(includedir)/ambx
+libambx_include_HEADERS = ambxlib.h
 
-ambxgrab_SOURCES = ambxgrab.c ambxlib.c ambxlib.h colorproc.c colorproc.h
-ambxgrab_LDADD = -lusb
+testambx_SOURCES = testambx.c
+testambx_LDADD = -lambx
 
-unittest_SOURCES = unittest.c colorproc.c colorproc.h filehelper.h filehelper.c Fader.h Fader.c
+unittest_SOURCES = unittest.c Fader.h Fader.c
+unittest_LDADD = -lgrabproc
 
-grabvid_SOURCES = grab.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c
-ambx_SOURCES = ambx.c grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h filehelper.c yuvrgb.h yuvrgb.c ambxlib.c ambxlib.h Fader.c Fader.h
-ambx_LDADD = -lusb -lpthread -lrt
+grabvid_SOURCES = grab.c
+grabvid_LDADD = -lgrabproc
 
+ambxd_SOURCES = ambx.c Fader.c Fader.h
+ambxd_LDADD = -lusb -lpthread -lrt -lgrabproc -lambx
+
+libambx_la_SOURCES = ambxlib.c ambxlib.h
+libambx_la_LIBADD = -lusb
+
+libgrabproc_la_SOURCES = grabber.h grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h yuvrgb.h yuvrgb.c filehelper.h filehelper.c

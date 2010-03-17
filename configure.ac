@@ -11,7 +11,7 @@ then
   AC_DEFINE(COLOR_BGR,1,[Use BGR colorspace])
 fi
 AC_PROG_CC
-AC_CHECK_HEADERS([usb.h])
-AC_CHECK_HEADERS([pthread.h])
+AM_PROG_LIBTOOL
+AC_CHECK_HEADERS([usb.h pthread.h])
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT
