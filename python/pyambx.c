@@ -40,7 +40,7 @@ static int terminate = 0;
 static int grabColors[5] = {0};
 static int updateColors[5] = {0};
 
-static int grabDone()
+static void grabDone()
 {
 	int index;
 	pthread_mutex_lock(&mutex);
