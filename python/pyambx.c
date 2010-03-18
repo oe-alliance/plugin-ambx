@@ -226,7 +226,7 @@ static PyObject *start(PyObject *self, PyObject *args)
 {
     terminate = 0;
     pthread_t outputThreadId;
-    r = pthread_create(&outputThreadId, NULL, startRun, NULL);
+    int r = pthread_create(&outputThreadId, NULL, startRun, NULL);
     if (r != 0)
     {
 	
@@ -245,7 +245,7 @@ static PyObject *stop(PyObject *self, PyObject *args)
         return NULL;
     terminate = 1;
     int r;
-    pthread_join(grabberThreadId, (void**)&r);
+    pthread_join(outputThreadId, (void**)&r);
 
     return Py_BuildValue("i", r);
 }
