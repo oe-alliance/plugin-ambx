@@ -10,11 +10,11 @@ extern Bitmap luma;
 extern Bitmap chroma;
 
 // Called once when starting up.
-int grabber_initialize();
+extern int grabber_initialize(void);
 // Called at each frame, before using luma and chroma
-int grabber_begin();
+extern int grabber_begin(void);
 // Called when done processing luma and chroma
-int grabber_end();
+extern int grabber_end(void);
 // Called on program shutdown.
-int grabber_destroy();
+extern int grabber_destroy(void);
 
