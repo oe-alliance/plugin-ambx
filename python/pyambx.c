@@ -201,12 +201,6 @@ static pthread_t grabberThreadId;
 static PyObject *startOutput(PyObject *self, PyObject *args)
 {
     terminateOutput = 0;
-    if (ambx_init() < 0)
-    {
-        PyErr_SetString(PyExc_RuntimeError, "ambx_init failed");
-        return NULL;
-    }
-
     if (ambx_open(ambxId) < 0)
     {
         PyErr_SetString(PyExc_RuntimeError, "ambx_open failed, probably no kit connected");
@@ -284,5 +278,9 @@ static PyMethodDef MyMethods[] = {
 PyMODINIT_FUNC initpyambx(void)
 {
     (void) Py_InitModule("pyambx", MyMethods);
+    if (ambx_init() < 0)
+    {
+        fprintf(stderr, "ambx_init failed");
+    }
 }
 
