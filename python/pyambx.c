@@ -12,7 +12,7 @@
 #include "ambxlib.h"
 #include "colorproc.h"
 
-static const int faderSpeed = 250; // in ms
+static int faderSpeed = 250; // in ms
 
 static int ErrorExit(int code)
 {
@@ -185,6 +185,11 @@ static int run(void)
 	fader_update(&fader, now);
     }
 
+    // turn off the lights.
+    for (i = 0; i < 5; ++i)
+    {
+	ambx_set_light(ambxId, i, 0);
+    }
     return 0;
 }
 
@@ -193,6 +198,7 @@ static void* startRun(void* arg)
 {
     return (void*)run();
 }
+
 
 static pthread_t outputThreadId;
 static pthread_t grabberThreadId;
@@ -267,11 +273,47 @@ static PyObject *stopGrabber(PyObject *self, PyObject *args)
     return Py_None;
 }
 
+static PyObject* setLight(PyObject *self, PyObject *args)
+{
+	int i;
+	int color;
+	if (!PyArg_ParseTuple(args, "i", &color))
+	        return NULL;
+	for (i = 0; i < 5; ++i)
+	{
+		grabColors[i] = color;
+	}
+	grabDone();
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject* getFadeTime(PyObject *self, PyObject *args)
+{
+	return Py_BuildValue("i", faderSpeed);
+}
+
+
+static PyObject* setFadeTime(PyObject *self, PyObject *args)
+{
+        int fadeTime;
+        if (!PyArg_ParseTuple(args, "i", &fadeTime))
+                return NULL;
+	faderSpeed = fadeTime;
+        Py_INCREF(Py_None);
+        return Py_None;
+}
+
+
+
 static PyMethodDef MyMethods[] = {
     {"startOutput", startOutput, METH_VARARGS, "Show nifty effects, return ID."},
     {"stopOutput", stopOutput, METH_VARARGS, "Show nifty effects."},
     {"startGrabber", startGrabber, METH_VARARGS, "Start grabbing to show lights."},
     {"stopGrabber", stopGrabber, METH_VARARGS, "Stop grabbing."},
+    {"setLight", setLight, METH_VARARGS, "Set color (when not fading)."},
+    {"setFadeTime", setFadeTime, METH_VARARGS, "Set fader delay in ms."},
+    {"getFadeTime", getFadeTime, METH_VARARGS, "Get fader delay in ms."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
