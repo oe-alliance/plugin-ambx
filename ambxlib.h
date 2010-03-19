@@ -43,12 +43,12 @@ typedef int (*EnumDeviceCallback)(DeviceInfo *info, void *context);
 typedef int (*EnumControllerCallback)(struct usb_device* dev, void* context);
 */
 
-int ambx_init();
+int ambx_init(void);
 /*
 int ambx_enumerate_devices(DeviceFoundCallback *callback);
 */
 
-int ambx_nr_controllers();
+int ambx_nr_controllers(void);
 int ambx_controller_get_status(int controller);
 int ambx_open(int controller);
 int ambx_close(int controller);

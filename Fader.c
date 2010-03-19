@@ -1,5 +1,6 @@
-#include "Fader.h"
+#include <stdlib.h>
 #include <memory.h>
+#include "Fader.h"
 
 void fader_init(Fader* self, unsigned int size)
 {

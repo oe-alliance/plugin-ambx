@@ -36,11 +36,11 @@ static unsigned int median(const unsigned int* hist, unsigned int count)
 // Thread control and communication
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-static int terminate = 0;
+static int terminateGrabber = 0;
 static int grabColors[5] = {0};
 static int updateColors[5] = {0};
 
-static void grabDone()
+static void grabDone(void)
 {
 	int index;
 	pthread_mutex_lock(&mutex);
@@ -50,11 +50,9 @@ static void grabDone()
 	pthread_mutex_unlock(&mutex); 
 }
 
-static int grabLoop()
+static int grabLoop(void)
 {
     int r;
-    r = grabber_initialize();
-    if (r != 0) return ErrorExit(r);
 #ifdef SHOW_FPS
     int fpsCount = 0;
     suseconds_t elapsed = 0;
@@ -62,7 +60,7 @@ static int grabLoop()
     struct timeval now;
     gettimeofday(&starttime, NULL);
 #endif
-    while(!terminate)
+    while(!terminateGrabber)
     {
         r = grabber_begin();
         if (r != 0) return ErrorExit(r);
@@ -72,7 +70,7 @@ static int grabLoop()
         unsigned int hist[256];
         for (i = 1; i <= 5; ++i) // 5 regions from left to right
         {
-	    // speed up by processing only half the lines, gives "purple"!
+	    // speed up by processing less lines
 #	    define SPEEDSHIFT_LUMA 4
 #	    define SPEEDSHIFT_CHROMA 2
 
@@ -113,8 +111,7 @@ static int grabLoop()
 #endif
     }
 
-    r = grabber_destroy();
-    return r;
+    return 0;
 }
 
 static void* startGrabLoop(void* arg)
@@ -122,39 +119,19 @@ static void* startGrabLoop(void* arg)
     return (void*)grabLoop();
 }
 
-static unsigned int tick()
+static unsigned int tick(void)
 {
     struct timeval now;
     gettimeofday(&now, NULL);
     return now.tv_sec * 1000 + (now.tv_usec / 1000);
 }
 
+static int terminateOutput = 0;
+static int ambxId = 0;
 
-static int run()
+
+static int run(void)
 {
-    int r;
-
-    if (ambx_init() < 0)
-    {
-        printf("ambx_init failed.\n");
-        return -1;
-    }
-
-    int id = 0;
-    if (ambx_open(id) < 0)
-    {
-        printf("ambx_open(%d) failed.\n", id);
-        return -1;
-    }
- 
-    pthread_t grabberThreadId;
-    r = pthread_create(&grabberThreadId, NULL, startGrabLoop, NULL);
-    if (r != 0)
-    {
-	fprintf(stderr, "pthread_create failed to create grab thread, code: %d\n", r);
-	return 2;
-    }
-
     Fader fader;
     fader_init(&fader, 5*3); // 5 RGB triplets
     int i;
@@ -164,7 +141,7 @@ static int run()
     }
     unsigned int now = tick();
     fader_commit(&fader, now, now + 5000); // in 5 seconds...
-    while (!terminate)
+    while (!terminateOutput)
     {
 	static const int region2light[5] = {0, 2, 3, 4, 1};
 	for (i=0; i<5; ++i)
@@ -173,7 +150,7 @@ static int run()
 			((int)fader.current[i*3  ] << 16) |
 			((int)fader.current[i*3+1] << 8 ) |
 			((int)fader.current[i*3+2]      );
-		ambx_set_light(id, region2light[i], color);
+		ambx_set_light(ambxId, region2light[i], color);
 		// printf("#%02x%02x%02x", fader.current[i*3  ], fader.current[i*3+1], fader.current[i*3+2]);
 	}
 	//printf("\n");
@@ -208,11 +185,7 @@ static int run()
 	fader_update(&fader, now);
     }
 
-    // Terminate grabber
-    terminate = 1;
-    pthread_join(grabberThreadId, (void**)&r);
-
-    return r;
+    return 0;
 }
 
 
@@ -221,38 +194,90 @@ static void* startRun(void* arg)
     return (void*)run();
 }
 
+static pthread_t outputThreadId;
+static pthread_t grabberThreadId;
 
-static PyObject *start(PyObject *self, PyObject *args)
+
+static PyObject *startOutput(PyObject *self, PyObject *args)
 {
-    terminate = 0;
-    pthread_t outputThreadId;
+    terminateOutput = 0;
+    if (ambx_init() < 0)
+    {
+        PyErr_SetString(PyExc_RuntimeError, "ambx_init failed");
+        return NULL;
+    }
+
+    if (ambx_open(ambxId) < 0)
+    {
+        PyErr_SetString(PyExc_RuntimeError, "ambx_open failed, probably no kit connected");
+        return NULL;
+    }
+ 
     int r = pthread_create(&outputThreadId, NULL, startRun, NULL);
     if (r != 0)
     {
-	
-	fprintf(stderr, "pthread_create failed to create thread, code: %d\n", r);
+        PyErr_SetString(PyExc_RuntimeError, "Failed to create output thread");
 	return NULL;
     }
 	
     return Py_BuildValue("i", outputThreadId);
 }
 
-
-static PyObject *stop(PyObject *self, PyObject *args)
+static PyObject *startGrabber(PyObject *self, PyObject *args)
 {
-    pthread_t outputThreadId;
-    if (!PyArg_ParseTuple(args, "i", &outputThreadId))
-        return NULL;
-    terminate = 1;
-    int r;
-    pthread_join(outputThreadId, (void**)&r);
+    terminateGrabber = 0;
 
-    return Py_BuildValue("i", r);
+    int r = grabber_initialize();
+    if (r != 0)
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to initialize grabber");
+	return NULL;
+    }
+    r = pthread_create(&grabberThreadId, NULL, startGrabLoop, NULL);
+    if (r != 0)
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to create grabber thread");
+        return NULL;
+    }
+
+    return Py_BuildValue("i",grabberThreadId);
+}
+
+
+static void stopThread(pthread_t threadId)
+{
+    int r;
+    pthread_join(threadId, (void**)&r);
+}
+
+static PyObject *stopOutput(PyObject *self, PyObject *args)
+{
+    terminateOutput = 1;
+    stopThread(outputThreadId);
+    ambx_close(ambxId);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject *stopGrabber(PyObject *self, PyObject *args)
+{
+    terminateGrabber = 1;
+    stopThread(grabberThreadId);
+    int r = grabber_destroy();
+    if (r != 0)
+    {
+        PyErr_SetString(PyExc_RuntimeError, "grabber_destroy returned error");
+	return NULL;
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyMethodDef MyMethods[] = {
-    {"start", start, METH_VARARGS, "Show nifty effects, return ID."},
-    {"stop", stop, METH_VARARGS, "Show nifty effects, pass ID from start."},
+    {"startOutput", startOutput, METH_VARARGS, "Show nifty effects, return ID."},
+    {"stopOutput", stopOutput, METH_VARARGS, "Show nifty effects."},
+    {"startGrabber", startGrabber, METH_VARARGS, "Start grabbing to show lights."},
+    {"stopGrabber", stopGrabber, METH_VARARGS, "Stop grabbing."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -260,3 +285,4 @@ PyMODINIT_FUNC initpyambx(void)
 {
     (void) Py_InitModule("pyambx", MyMethods);
 }
+
