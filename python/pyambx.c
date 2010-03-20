@@ -39,6 +39,7 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static int terminateGrabber = 0;
 static int grabColors[5] = {0};
 static int updateColors[5] = {0};
+static int updateTrigger = 0; // informs updater that we sent a new value
 
 static void grabDone(void)
 {
@@ -46,6 +47,7 @@ static void grabDone(void)
 	pthread_mutex_lock(&mutex);
 	for (index = 0; index < 5; ++index)
 		updateColors[index] = grabColors[index];
+	++updateTrigger;
 	pthread_cond_broadcast(&cond);
 	pthread_mutex_unlock(&mutex); 
 }
@@ -137,8 +139,10 @@ static int run(void)
     int i;
     for (i = 0; i < 5*3; ++i)
     {
-    	fader.target[i] = 128; // fade to gray
+    	fader.target[i] = 64; // fade to gray
     }
+    int currentTrigger = updateTrigger;
+    int currentColors[5] = {0};
     unsigned int now = tick();
     fader_commit(&fader, now, now + 5000); // in 5 seconds...
     while (!terminateOutput)
@@ -150,7 +154,11 @@ static int run(void)
 			((int)fader.current[i*3  ] << 16) |
 			((int)fader.current[i*3+1] << 8 ) |
 			((int)fader.current[i*3+2]      );
-		ambx_set_light(ambxId, region2light[i], color);
+		if (currentColors[i] != color)
+		{
+			ambx_set_light(ambxId, region2light[i], color);
+			currentColors[i] = color;
+		}
 		// printf("#%02x%02x%02x", fader.current[i*3  ], fader.current[i*3+1], fader.current[i*3+2]);
 	}
 	//printf("\n");
@@ -165,13 +173,9 @@ static int run(void)
 	pthread_mutex_lock(&mutex);
 	int ret = pthread_cond_timedwait(&cond, &mutex, &abstime);
 	now = tick();
-	if (ret == ETIMEDOUT)
+	if (currentTrigger != updateTrigger)
 	{
-		// no new data (probably)
-		//printf(".\n");
-	}
-	else
-	{
+		currentTrigger = updateTrigger;
 		//printf("Data!\n");
 		for (i = 0; i < 5; ++i)
 		{
