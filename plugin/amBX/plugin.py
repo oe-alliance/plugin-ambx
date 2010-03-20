@@ -23,21 +23,21 @@ config.plugins.ambx.mode = ConfigSelection(default = "off", choices = [
 		("video", _("Video")),
 		("color", _("Color")), 
 		])
-config.plugins.ambx.fader = ConfigSelection(default = 250, choices = [
-		(0, _("Off")),
-		(64, _("64 ms")),
-		(125, _("125 ms")),
-		(250, _("250 ms")),
-		(500, _("500 ms")),
+config.plugins.ambx.fader = ConfigSelection(default = '250', choices = [
+		('0', _("Off")),
+		('64', _("64 ms")),
+		('125', _("125 ms")),
+		('250', _("250 ms")),
+		('500', _("500 ms")),
 		])
-config.plugins.ambx.color = ConfigSelection(default = 0x404040, choices = [
-		(0x202020, _("Dark")),
-		(0x404040, _("Medium")),
-		(0x808080, _("Bright")),
-		(0xFFFFFF, _("White")),
-		(0x806030, _("Sunny")), 
-		(0x408040, _("Park")),
-		(0x405080, _("Ocean")), 
+config.plugins.ambx.color = ConfigSelection(default = '404040', choices = [
+		('202020', _("Dark")),
+		('404040', _("Medium")),
+		('808080', _("Bright")),
+		('FFFFFF', _("White")),
+		('806030', _("Sunny")), 
+		('408040', _("Park")),
+		('405080', _("Ocean")), 
 		])
 # Plugin definition
 from Plugins.Plugin import PluginDescriptor
@@ -63,10 +63,12 @@ class Effects:
 			self.running = True
 	def stop(self):
 		if self.running:
-			self.pyambx.stopGrabber()
-			self.grabbing = False
+			if self.grabbing:
+				self.grabbing = False
+				self.pyambx.stopGrabber()
 			self.pyambx.stopOutput()
 			self.running = False
+			self.fader = 250
 	def changeMode(self, mode):
 		if mode == self.mode:
 			return
@@ -91,7 +93,7 @@ class Effects:
 			self.pyambx.setLight(color) 
 		self.color = color
 	def changeFader(self, speed):
-		pass
+		self.fader = speed
 	def enterStandby(self):
 		self.stop()
 	def leaveStandby(self):
@@ -227,18 +229,19 @@ def changeMode(el):
 def changeColor(el):
 	global effects
 	try:
-		effects.changeColor(el.value)
+		effects.changeColor(int(el.value, 16))
 	except Exception, e:
 		print "[amBX] Failed to switch color:", e
 
 def changeFader(el):
 	global effects
 	try:
-		effects.changeFader(el.value)
+		effects.changeFader(int(el.value))
 	except Exception, e:
 		print "[amBX] Failed to switch fader:", e
 
 def standbyCounterChanged(configElement):
+	print "[amBX] Going to standby"
 	global effects
 	try:
 		import Screens.Standby
