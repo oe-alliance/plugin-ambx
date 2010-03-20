@@ -277,11 +277,20 @@ static PyObject* setLight(PyObject *self, PyObject *args)
 {
 	int i;
 	int color;
-	if (!PyArg_ParseTuple(args, "i", &color))
-	        return NULL;
-	for (i = 0; i < 5; ++i)
+	if (PyArg_ParseTuple(args, "i", &color))
 	{
-		grabColors[i] = color;
+		for (i = 0; i < 5; ++i)
+		{
+			grabColors[i] = color;
+		}
+	}
+	else if (PyArg_ParseTuple(args, "iiiii",  grabColors+0, grabColors+1, grabColors+2, grabColors+3, grabColors+4))
+	{
+		// set all colors...
+	}
+	else
+	{
+		return NULL;
 	}
 	grabDone();
 	Py_INCREF(Py_None);
