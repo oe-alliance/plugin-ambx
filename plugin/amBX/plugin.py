@@ -7,7 +7,6 @@ import enigma
 from Components.config import config, ConfigEnableDisable, ConfigSubsection, \
 			 ConfigYesNo, ConfigClock, getConfigListEntry, \
 			 ConfigSelection, ConfigNumber
-import Screens.Standby
 from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen
 from Components.ActionMap import ActionMap
@@ -18,9 +17,28 @@ import Components.PluginComponent
 
 #Set default configuration
 config.plugins.ambx = ConfigSubsection()
-config.plugins.ambx.enabled = ConfigEnableDisable(default = False)
 config.plugins.ambx.showinextensions = ConfigYesNo(default = True)
-
+config.plugins.ambx.mode = ConfigSelection(default = "off", choices = [
+		("off", _("Off")),
+		("video", _("Video")),
+		("color", _("Color")), 
+		])
+config.plugins.ambx.fader = ConfigSelection(default = 250, choices = [
+		(0, _("Off")),
+		(64, _("64 ms")),
+		(125, _("125 ms")),
+		(250, _("250 ms")),
+		(500, _("500 ms")),
+		])
+config.plugins.ambx.color = ConfigSelection(default = 0x404040, choices = [
+		(0x202020, _("Dark")),
+		(0x404040, _("Medium")),
+		(0x808080, _("Bright")),
+		(0xFFFFFF, _("White")),
+		(0x806030, _("Sunny")), 
+		(0x408040, _("Park")),
+		(0x405080, _("Ocean")), 
+		])
 # Plugin definition
 from Plugins.Plugin import PluginDescriptor
 
@@ -31,6 +49,9 @@ class Effects:
 	def __init__(self):
 		self.pyambx = None
 		self.running = False
+		self.grabbing = False
+		self.mode = 'off'
+		self.color = 0
 	def init(self):
 		if self.pyambx is None:
 			import pyambx
@@ -40,12 +61,43 @@ class Effects:
 			self.init()
 			self.pyambx.startOutput()
 			self.running = True
-			self.pyambx.startGrabber()
 	def stop(self):
 		if self.running:
 			self.pyambx.stopGrabber()
+			self.grabbing = False
 			self.pyambx.stopOutput()
 			self.running = False
+	def changeMode(self, mode):
+		if mode == self.mode:
+			return
+		self.applyMode(mode)
+	def applyMode(self, mode):
+		if mode == 'off':
+			self.stop()
+		else:
+			self.start()
+		if mode == 'video':
+			if not self.grabbing:
+				self.grabbing = True
+				self.pyambx.startGrabber()
+		else:
+			if self.grabbing:
+				self.grabbing = False
+				self.pyambx.stopGrabber()
+			self.pyambx.setLight(self.color) 
+		self.mode = mode
+	def changeColor(self, color):
+		if self.pyambx is not None:
+			self.pyambx.setLight(color) 
+		self.color = color
+	def changeFader(self, speed):
+		pass
+	def enterStandby(self):
+		self.stop()
+	def leaveStandby(self):
+		self.applyMode(self.mode)
+		if self.pyambx is not None:
+			self.pyambx.setLight(self.color) 
 	def __del__(self):
 		self.stop()
 
@@ -83,8 +135,10 @@ class Config(ConfigListScreen,Screen):
 		Screen.__init__(self, session)
 		cfg = config.plugins.ambx
 		self.list = [
-			getConfigListEntry(_("Enable effects"), cfg.enabled),
+			getConfigListEntry(_("Effect mode"), cfg.mode),
 			getConfigListEntry(_("Show in extensions"), cfg.showinextensions),
+			#TODO# getConfigListEntry(_("Fader speed"), cfg.fader),
+			getConfigListEntry(_("Color"), cfg.color),
 			]
 		ConfigListScreen.__init__(self, self.list, session = self.session, on_change = self.changedEntry)
 		self["status"] = Label()
@@ -135,13 +189,20 @@ def main(session, **kwargs):
 # Autostart section
 
 def autostart(reason, session=None, **kwargs):
-    "called with reason=1 to during shutdown, with reason=0 at startup?"
-    global _session
-    if reason == 0:
-    	if session is not None:
-		_session = session
-    else:
-        print "[amBX] Stop"
+	"called with reason=1 to during shutdown, with reason=0 at startup"
+	global _session
+	if reason == 0:
+		config.plugins.ambx.mode.addNotifier(changeMode)
+		config.plugins.ambx.color.addNotifier(changeColor)
+		config.plugins.ambx.fader.addNotifier(changeFader)
+		config.misc.standbyCounter.addNotifier(standbyCounterChanged, initial_call = False)
+    		if session is not None:
+			_session = session
+    	else:
+    		try:
+    			effects.stop()
+    		except:
+    			pass
 
 # we need this helper function to identify the descriptor
 def extensionsmenu(session, **kwargs):
@@ -156,19 +217,39 @@ def housekeepingExtensionsmenu(el):
 	except Exception, e:
 		print "[amBX] Failed to update extensions menu:", e
 
-def enableDisable(el):
+def changeMode(el):
 	global effects
 	try:
-		if el.value:
-			effects.start()
-		else:
-			effects.stop()
+		effects.changeMode(el.value)
 	except Exception, e:
 		print "[amBX] Failed to start/stop effects:", e
 
+def changeColor(el):
+	global effects
+	try:
+		effects.changeColor(el.value)
+	except Exception, e:
+		print "[amBX] Failed to switch color:", e
+
+def changeFader(el):
+	global effects
+	try:
+		effects.changeFader(el.value)
+	except Exception, e:
+		print "[amBX] Failed to switch fader:", e
+
+def standbyCounterChanged(configElement):
+	global effects
+	try:
+		import Screens.Standby
+		effects.enterStandby()
+		Screens.Standby.inStandby.onClose.append(effects.leaveStandby)
+	except Exception, e:
+		print "[amBX] Failed to disable on standby:", e
+	
+
 description = _("amBX Effects")
 config.plugins.ambx.showinextensions.addNotifier(housekeepingExtensionsmenu, initial_call = False, immediate_feedback = False)
-config.plugins.ambx.enabled.addNotifier(enableDisable)
 extDescriptor = PluginDescriptor(name="amBX", description = description, where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = extensionsmenu)
 
 def Plugins(**kwargs):
