@@ -135,18 +135,26 @@ static int ambxId = 0;
 static int run(void)
 {
     Fader fader;
-    fader_init(&fader, 5*3); // 5 RGB triplets
+    fader_init(&fader, 5*3);
     int i;
     for (i = 0; i < 5*3; ++i)
     {
-    	fader.target[i] = 64; // fade to gray
+    	fader.target[i] = 0;
     }
-    int currentTrigger = updateTrigger;
+    int currentTrigger = updateTrigger-1;
     int currentColors[5] = {0};
     unsigned int now = tick();
-    fader_commit(&fader, now, now + 5000); // in 5 seconds...
+    fader_commit(&fader, now, now); 
     while (!terminateOutput)
     {
+	struct timespec abstime;
+        clock_gettime(CLOCK_REALTIME, &abstime);
+        abstime.tv_nsec += 25000000;
+	if (abstime.tv_nsec > 1000000000)
+	{
+		abstime.tv_sec += 1;
+		abstime.tv_nsec-= 1000000000;
+	}
 	static const int region2light[5] = {0, 2, 3, 4, 1};
 	for (i=0; i<5; ++i)
 	{
@@ -159,19 +167,9 @@ static int run(void)
 			ambx_set_light(ambxId, region2light[i], color);
 			currentColors[i] = color;
 		}
-		// printf("#%02x%02x%02x", fader.current[i*3  ], fader.current[i*3+1], fader.current[i*3+2]);
-	}
-	//printf("\n");
-	struct timespec abstime;
-        clock_gettime(CLOCK_REALTIME, &abstime);
-        abstime.tv_nsec += 20000000;
-	if (abstime.tv_nsec > 1000000000)
-	{
-		abstime.tv_sec += 1;
-		abstime.tv_nsec-= 1000000000;
 	}
 	pthread_mutex_lock(&mutex);
-	int ret = pthread_cond_timedwait(&cond, &mutex, &abstime);
+	pthread_cond_timedwait(&cond, &mutex, &abstime);
 	now = tick();
 	if (currentTrigger != updateTrigger)
 	{
@@ -182,14 +180,14 @@ static int run(void)
 			fader.target[3*i    ] = (byte)((updateColors[i] >> 16) & 0xFF);
 			fader.target[3*i + 1] = (byte)((updateColors[i] >> 8) & 0xFF);
 			fader.target[3*i + 2] = (byte)(updateColors[i] & 0xFF);
-			fader_commit(&fader, now, now + faderSpeed);
 		}
+		fader_commit(&fader, now, now + faderSpeed);
 	}	
 	pthread_mutex_unlock(&mutex); 
 	fader_update(&fader, now);
     }
 
-    // turn off the lights.
+    // turn off the lights when shutting down.
     for (i = 0; i < 5; ++i)
     {
 	ambx_set_light(ambxId, i, 0);
