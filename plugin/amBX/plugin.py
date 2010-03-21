@@ -82,7 +82,7 @@ class Effects:
 			if not self.grabbing:
 				self.grabbing = True
 				self.pyambx.startGrabber()
-		else:
+		elif mode == 'color':
 			if self.grabbing:
 				self.grabbing = False
 				self.pyambx.stopGrabber()
