@@ -65,7 +65,12 @@ static int grabLoop(void)
     while(!terminateGrabber)
     {
         r = grabber_begin();
-        if (r != 0) return ErrorExit(r);
+        if (r != 0) 
+	{
+		// grabbing failed, try again in half a second.
+		usleep(500000);
+		continue;
+	}
 
         int i;
         int x2 = 0;

@@ -111,6 +111,13 @@ int grabber_begin()
 
                 munmap((void*)data, 100);
 
+		if (stride != xres)
+		{
+			fprintf(stderr, "stride != xres (%d != %d), aborting\n");
+			close(mem_fd);
+			return 1;
+		}
+
 		unsigned char* memory_tmp;	
                 if(!(memory_tmp = (unsigned char*)mmap(0, DMA_BLOCKSIZE + 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, SPARE_RAM)))
                 {
