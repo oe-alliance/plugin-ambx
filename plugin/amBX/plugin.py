@@ -52,6 +52,7 @@ class Effects:
 		self.grabbing = False
 		self.mode = 'off'
 		self.color = 0
+		self.fader = 250
 	def init(self):
 		if self.pyambx is None:
 			import pyambx
@@ -68,7 +69,6 @@ class Effects:
 				self.pyambx.stopGrabber()
 			self.pyambx.stopOutput()
 			self.running = False
-			self.fader = 250
 	def changeMode(self, mode):
 		if mode == self.mode:
 			return
@@ -94,6 +94,8 @@ class Effects:
 		self.color = color
 	def changeFader(self, speed):
 		self.fader = speed
+		if self.pyambx is not None:
+			self.pyambx.setFadeTime(speed)
 	def enterStandby(self):
 		self.stop()
 	def leaveStandby(self):
@@ -139,7 +141,7 @@ class Config(ConfigListScreen,Screen):
 		self.list = [
 			getConfigListEntry(_("Effect mode"), cfg.mode),
 			getConfigListEntry(_("Show in extensions"), cfg.showinextensions),
-			#TODO# getConfigListEntry(_("Fader speed"), cfg.fader),
+			getConfigListEntry(_("Fader speed"), cfg.fader),
 			getConfigListEntry(_("Color"), cfg.color),
 			]
 		ConfigListScreen.__init__(self, self.list, session = self.session, on_change = self.changedEntry)
@@ -240,13 +242,21 @@ def changeFader(el):
 	except Exception, e:
 		print "[amBX] Failed to switch fader:", e
 
+def leaveStandby():
+	global effects
+	try:
+		effects.leaveStandby()
+	except Exception, e:
+		print "[amBX] Failed to enable on standby:", e
+
 def standbyCounterChanged(configElement):
 	print "[amBX] Going to standby"
 	global effects
 	try:
 		import Screens.Standby
 		effects.enterStandby()
-		Screens.Standby.inStandby.onClose.append(effects.leaveStandby)
+		if leaveStandby not in Screens.Standby.inStandby.onClose:
+			Screens.Standby.inStandby.onClose.append(leaveStandby)
 	except Exception, e:
 		print "[amBX] Failed to disable on standby:", e
 	
