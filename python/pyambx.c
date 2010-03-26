@@ -54,6 +54,7 @@ static void grabDone(void)
 
 static int grabLoop(void)
 {
+    nice(10); // don't hog the CPU
     int r;
 #ifdef SHOW_FPS
     int fpsCount = 0;
