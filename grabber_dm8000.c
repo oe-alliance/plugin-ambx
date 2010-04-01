@@ -111,9 +111,16 @@ int grabber_begin()
 
                 munmap((void*)data, 100);
 
+		// Check that obtained values are sane and prevent segfaults.
 		if (stride != xres)
 		{
-			fprintf(stderr, "stride != xres (%d != %d), aborting\n");
+			fprintf(stderr, "stride != xres (%d != %d), aborting\n", stride, xres);
+			close(mem_fd);
+			return 1;
+		}
+		if (ofs < yres)
+		{
+			fprintf(stderr, "luma lines < yres (%d < %d), aborting\n", ofs, yres);
 			close(mem_fd);
 			return 1;
 		}
