@@ -112,6 +112,12 @@ int grabber_begin()
                 munmap((void*)data, 100);
 
 		// Check that obtained values are sane and prevent segfaults.
+		if ((adr == 0) || (adr2 == 0))
+		{
+			fprintf(stderr, "Got zero 'adr' offsets, aborting\n", stride, xres);
+			close(mem_fd);
+			return 1;
+		}
 		if (stride != xres)
 		{
 			fprintf(stderr, "stride != xres (%d != %d), aborting\n", stride, xres);
