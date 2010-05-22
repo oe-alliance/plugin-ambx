@@ -7,15 +7,12 @@ libgrabproc_include_HEADERS = grabber.h colorproc.h yuvrgb.h
 libambx_includedir = $(includedir)/ambx
 libambx_include_HEADERS = ambxlib.h
 
-testambx: libambx.la
 testambx_SOURCES = testambx.c
 testambx_LDADD = -lambx
 
-unittest: libgrabproc.la
 unittest_SOURCES = unittest.c Fader.h Fader.c
 unittest_LDADD = -lgrabproc
 
-grabvid: libgrabproc.la
 grabvid_SOURCES = grab.c
 grabvid_LDADD = -lgrabproc
 
