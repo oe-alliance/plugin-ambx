@@ -160,6 +160,10 @@ class Config(ConfigListScreen,Screen):
 			"ok": self.save,
 		}, -2)
 		self.onChangedEntry = []
+		self.updateTimer = enigma.eTimer()
+	    	self.updateTimer.callback.append(self.updateStatus)
+		self.updateTimer.start(2000)
+		self.updateStatus()
 	
 	# for summary:
 	def changedEntry(self):
@@ -175,16 +179,32 @@ class Config(ConfigListScreen,Screen):
 
 	def save(self):
 		#print "saving"
+		self.updateTimer.stop()
 		self.saveAll()
 		self.close(True,self.session)
 
 	def cancel(self):
 		#print "cancel"
+		self.updateTimer.stop()
 		for x in self["config"].list:
 			x[1].cancel()
 		self.close(False,self.session)
 
-
+	def updateStatus(self):
+		if not effects.running:
+			text = _("not running")
+		elif effects.grabbing:
+			frames, usec = effects.pyambx.getFpsStats()
+			if usec:
+				fps = "%.3g" % (frames*1000000.0/usec)
+			else:
+				fps = "--"   
+			text = _("Grabber FPS") + ": " + fps 
+				
+		else:
+			text = _("Color mode")
+		self["status"].setText(text)
+		
 def main(session, **kwargs):
     session.open(Config)
 
