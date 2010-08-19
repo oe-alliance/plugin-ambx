@@ -12,7 +12,11 @@
 #include "ambxlib.h"
 #include "colorproc.h"
 
+#define SHOW_FPS
+
 static int faderSpeed = 250; // in ms
+static unsigned int fps_frames = 0; // for FPS calculation
+static unsigned int fps_usec = 0;
 
 static int ErrorExit(int code)
 {
@@ -54,7 +58,7 @@ static void grabDone(void)
 
 static int grabLoop(void)
 {
-    nice(10); // don't hog the CPU
+    nice(15); // don't hog the CPU
     int r;
 #ifdef SHOW_FPS
     int fpsCount = 0;
@@ -109,9 +113,10 @@ static int grabLoop(void)
 	elapsed += now.tv_usec;
 	elapsed -= starttime.tv_usec;
 	++fpsCount;
-	if (elapsed > 1000000)
+	if (elapsed > 2000000)
 	{
-		printf("FPS: %d/10 (%d/%d)\n", (fpsCount * 10000000) / elapsed, fpsCount, elapsed);
+		fps_frames = fpsCount;
+		fps_usec = elapsed;
 		starttime = now;
 		fpsCount = 0;
  		elapsed = 0;
@@ -321,7 +326,10 @@ static PyObject* setFadeTime(PyObject *self, PyObject *args)
         return Py_None;
 }
 
-
+static PyObject* getFpsStats(PyObject *self, PyObject *args)
+{
+	return Py_BuildValue("ii", fps_frames, fps_usec);
+}
 
 static PyMethodDef MyMethods[] = {
     {"startOutput", startOutput, METH_VARARGS, "Show nifty effects, return ID."},
@@ -331,6 +339,7 @@ static PyMethodDef MyMethods[] = {
     {"setLight", setLight, METH_VARARGS, "Set color (when not fading)."},
     {"setFadeTime", setFadeTime, METH_VARARGS, "Set fader delay in ms."},
     {"getFadeTime", getFadeTime, METH_VARARGS, "Get fader delay in ms."},
+    {"getFpsStats", getFpsStats, METH_VARARGS, "Get FPS stats, returns (frames,usec)."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
