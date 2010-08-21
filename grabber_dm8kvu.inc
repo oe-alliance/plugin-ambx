@@ -180,7 +180,6 @@ int grabber_begin()
 		int xtmp;
 		int ytmp;
 		int t = 0;
-		int t2 = 0;
                 for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
                 {
                         if ((stride-xtmp) <= chr_luma_stride)
@@ -196,6 +195,7 @@ int grabber_begin()
 			// Skip the invisible lines
 			t += (ofs - yres) * chr_luma_stride;
                 }
+		t = 0;
 		xsub=chr_luma_stride;
 		int yres2 = yres >> 1; // ofs is larger than yres
                 for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
@@ -206,8 +206,8 @@ int grabber_begin()
                         int dat1=xtmp;
                         for (ytmp = 0; ytmp < yres2; ytmp++) 
                         {
-                                memcpy(chroma.data+dat1,memory_tmp+offset+t2,xsub); // chroma
-                                t2+=chr_luma_stride;
+                                memcpy(chroma.data+dat1,memory_tmp+offset+t,xsub); // chroma
+                                t+=chr_luma_stride;
                                 dat1+=stride;
                         }
                         // Skip the invisible lines
