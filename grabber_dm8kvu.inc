@@ -23,6 +23,8 @@ Bitmap chroma;
 #define SPARE_RAM 252*1024*1024 // the last 4 MB is enough...
 #define DMA_BLOCKSIZE 0x3FF000 // should be big enough to hold a complete YUV 1920x1080 HD picture, otherwise it will not work properly on DM8000
 
+static int mem_fd = -1;
+static unsigned char* mem_spare = NULL;
 
 static void createBitmap(Bitmap* bm, int width, int height)
 {
@@ -62,6 +64,17 @@ int grabber_initialize()
 {
     memset(&luma, 0, sizeof(luma));
     memset(&chroma, 0, sizeof(chroma));
+    mem_fd = open("/dev/mem", O_RDWR|O_SYNC);
+    if (mem_fd < 0)
+    {
+        fprintf(stderr, "Can't open /dev/mem \n");
+        return 1;
+    }
+    if(!(mem_spare = (unsigned char*)mmap(0, DMA_BLOCKSIZE + 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, SPARE_RAM)))
+    {
+        fprintf(stderr, "Mainmemory: <Memmapping failed> DMA buffer\n");
+        return 1;
+    }
     return 0;
 }
 
@@ -86,12 +99,6 @@ int grabber_begin()
 	createBitmaps(xres,yres);
     }
 
-    int mem_fd = open("/dev/mem", O_RDWR|O_SYNC);
-    if (mem_fd < 0)
-    {
-        fprintf(stderr, "Can't open /dev/mem \n");
-        return 1;
-    }
                 // grab brcm7401 pic from decoder memory
                 const unsigned char* data = (unsigned char*)mmap(0, 100, PROT_READ, MAP_SHARED, mem_fd, 0x10100000);
                 if(!data)
@@ -115,28 +122,20 @@ int grabber_begin()
 		if ((adr == 0) || (adr2 == 0) || (adr2<=adr))
 		{
 			fprintf(stderr, "Got or invalid 'adr' offsets, aborting (%x,%x)\n", adr, adr2);
-			close(mem_fd);
 			return 1;
 		}
 		if (stride != xres)
 		{
 			fprintf(stderr, "stride != xres (%d != %d), aborting\n", stride, xres);
-			close(mem_fd);
 			return 1;
 		}
 		if (ofs < yres)
 		{
 			fprintf(stderr, "luma lines < yres (%d < %d), aborting\n", ofs, yres);
-			close(mem_fd);
 			return 1;
 		}
 
-		unsigned char* memory_tmp;	
-                if(!(memory_tmp = (unsigned char*)mmap(0, DMA_BLOCKSIZE + 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, SPARE_RAM)))
-                {
-                                fprintf(stderr, "Mainmemory: <Memmapping failed> DMA buffer\n");
-                                return 1;
-                }
+		unsigned char* memory_tmp = mem_spare;	
                 volatile unsigned long *mem_dma;
                 if(!(mem_dma = (volatile unsigned long*)mmap(0, 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, DMA_MEM_ADDRESS)))
                 {
@@ -214,7 +213,6 @@ int grabber_begin()
                         // Skip the invisible lines
                         t += (ofs2 - yres2) * chr_luma_stride;
                 }
-                munmap(memory_tmp - 0x1000, DMA_BLOCKSIZE + 0x1000); // compensate for += above (bug in aio)
                 int count = (stride*yres) >> 2;
                 unsigned char* p = luma.data;
                 for (t=count; t != 0; --t)
@@ -234,7 +232,6 @@ int grabber_begin()
                         p += 4;
                 }
 
-    close(mem_fd);
     return 0;
 }
 
@@ -248,6 +245,16 @@ int grabber_end()
 int grabber_destroy()
 {
     destroyBitmaps();
+    if (mem_fd >= 0)
+    {
+        close(mem_fd);
+        mem_fd = -1;
+    }
+    if (mem_spare)
+    {
+        munmap(mem_spare, DMA_BLOCKSIZE + 0x1000);
+	mem_spare = NULL;
+    }
     return 0;
 }
 
