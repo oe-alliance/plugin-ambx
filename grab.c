@@ -40,7 +40,7 @@ static int saveBmp(const char* filename)
 #undef PUT8
                 fwrite(hdr, 1, i, fd2);
                 int y;
-                for (y = luma.height-1; y != 0; y -= 1) {
+                for (y = luma.height-1; y >= 0; y -= 1) {
                         fwrite(video+(y*luma.width*3), luma.width*3, 1, fd2);
                 }
 
