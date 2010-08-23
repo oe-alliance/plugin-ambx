@@ -19,6 +19,7 @@
 
 Bitmap luma;
 Bitmap chroma;
+int grabber_flags = 0;
 
 static void createBitmap(Bitmap* bm, int width, int height)
 {

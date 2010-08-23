@@ -240,6 +240,7 @@ static PyObject *startGrabber(PyObject *self, PyObject *args)
 {
     terminateGrabber = 0;
 
+    grabber_flags |= FLAG_COARSE; // no need to be precise
     int r = grabber_initialize();
     if (r != 0)
     {

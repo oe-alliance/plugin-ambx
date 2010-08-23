@@ -50,8 +50,14 @@ void YUVtoRGB(unsigned char *video, Bitmap* bmpLuma, Bitmap* bmpChroma)
 		for (x=bmpLuma->width; x != 0; x-=2)
 		{
 			int Y;
+#if SWAP_UV
+			int V=chroma[t++];
+			int U=chroma[t++];
+#else
 			int U=chroma[t++];
 			int V=chroma[t++];
+#endif
+
 
 #if COLOR_BGR
 			//on xilleon use bgr instead of rgb so simply swap BV and RU
@@ -102,6 +108,9 @@ void YUVtoRGB(unsigned char *video, Bitmap* bmpLuma, Bitmap* bmpChroma)
 
 int YUV2RGB(int y, int u, int v)
 {
+#if SWAP_UV
+   int t = u; u = v; v = t;
+#endif
    // Formulas from Wikipedia...
    int lum = 9535 * (y-16);
    if (lum <= 0)

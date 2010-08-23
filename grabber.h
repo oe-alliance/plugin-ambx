@@ -1,3 +1,5 @@
+#define FLAG_COARSE   0x01
+
 typedef struct _Bitmap
 {
 	unsigned char* data;
@@ -8,6 +10,7 @@ typedef struct _Bitmap
 	
 extern Bitmap luma;
 extern Bitmap chroma;
+extern int grabber_flags;
 
 // Called once when starting up.
 extern int grabber_initialize(void);

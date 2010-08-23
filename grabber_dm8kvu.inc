@@ -19,6 +19,7 @@
 
 Bitmap luma;
 Bitmap chroma;
+int grabber_flags = 0;
 
 #define SPARE_RAM 252*1024*1024 // the last 4 MB is enough...
 #define DMA_BLOCKSIZE 0x3FF000 // should be big enough to hold a complete YUV 1920x1080 HD picture, otherwise it will not work properly on DM8000
@@ -213,24 +214,32 @@ int grabber_begin()
                         // Skip the invisible lines
                         t += (ofs2 - yres2) * chr_luma_stride;
                 }
+
+		// COARSE mode? skip the byte swapping.
+		if ((grabber_flags & FLAG_COARSE) != 0)
+			return 0;
+
                 int count = (stride*yres) >> 2;
-                unsigned char* p = luma.data;
-                for (t=count; t != 0; --t)
                 {
-			unsigned char q;
-			q = p[0]; p[0] = p[3]; p[3] = q;
-			q = p[1]; p[1] = p[2]; p[2] = q;
-                        p += 4;
-                }
+			unsigned char* p = luma.data;
+        	        for (t=count; t != 0; --t)
+                	{
+				unsigned char q;
+				q = p[0]; p[0] = p[3]; p[3] = q;
+				q = p[1]; p[1] = p[2]; p[2] = q;
+                        	p += 4;
+	                }
+		}
                 count = (stride*yres2) >> 2;
-                p = chroma.data;
-                for (t=count; t != 0; --t)
-                {
-			unsigned char q;
-			q = p[0]; p[0] = p[3]; p[3] = q;
-			q = p[1]; p[1] = p[2]; p[2] = q;
-                        p += 4;
-                }
+		{
+	                unsigned short* p = (unsigned short*)chroma.data;
+        	        for (t=count; t != 0; --t)
+                	{
+				unsigned short q;
+				q = p[0]; p[0] = p[1]; p[1] = q;
+                	        p += 2;
+	                }
+		}
 
     return 0;
 }

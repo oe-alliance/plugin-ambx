@@ -9,6 +9,8 @@ AC_SUBST(MACHINE)
 if test "${MACHINE}" = "dm7025"
 then
   AC_DEFINE(COLOR_BGR,1,[Use BGR colorspace])
+else
+  AC_DEFINE(SWAP_UV,1,[UV are reversed as VU in chroma])
 fi
 AC_PROG_CC
 AM_PROG_LIBTOOL
