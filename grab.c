@@ -84,6 +84,14 @@ void printRGB(int y, int u, int v)
 int main(int argc, char** argv)
 {
     int r;
+    int i;
+
+    for (i = 1; i < argc; ++i)
+    {
+	const char* arg = argv[i];
+	if (strcmp(arg, "-c") == 0) grabber_flags |= FLAG_COARSE;
+	else if (strcmp(arg, "-s") == 0) scale_lines = 64;
+    }
 
     r = grabber_initialize();
     if (r != 0) return ErrorExit(r);
@@ -91,7 +99,6 @@ int main(int argc, char** argv)
     r = grabber_begin();
     if (r != 0) return ErrorExit(r);
 
-    int i;
     int x2 = 0;
     unsigned int hist[256];
     for (i = 1; i <= 5; ++i) // 5 regions from left to right

@@ -17,10 +17,6 @@
 
 #include "grabber.h"
 
-Bitmap luma;
-Bitmap chroma;
-int grabber_flags = 0;
-
 #define SPARE_RAM 252*1024*1024 // the last 4 MB is enough...
 #define DMA_BLOCKSIZE 0x3FF000 // should be big enough to hold a complete YUV 1920x1080 HD picture, otherwise it will not work properly on DM8000
 
@@ -94,95 +90,103 @@ int grabber_begin()
 	fprintf(stderr, "Failed to read xres (%d)\n", xres);
 	return 1;
     }
-    if ((yres != luma.height) || (xres != luma.width))
+    if (scale_lines == 0)
     {
-	destroyBitmaps();
-	createBitmaps(xres,yres);
+    	if ((yres != luma.height) || (xres != luma.width))
+    	{
+		destroyBitmaps();
+		createBitmaps(xres,yres);
+    	}
+    }
+    else
+    {
+    	if ((scale_lines != luma.height) || (xres != luma.width))
+    	{
+		destroyBitmaps();
+		createBitmaps(xres,scale_lines);
+    	}
+    }
+    // grab brcm7401 pic from decoder memory
+    const unsigned char* data = (unsigned char*)mmap(0, 100, PROT_READ, MAP_SHARED, mem_fd, 0x10100000);
+    if(!data)
+    {
+        fprintf(stderr, "Mainmemory: <Memmapping failed>\n");
+        return 1;
     }
 
-                // grab brcm7401 pic from decoder memory
-                const unsigned char* data = (unsigned char*)mmap(0, 100, PROT_READ, MAP_SHARED, mem_fd, 0x10100000);
-                if(!data)
-                {
-                        fprintf(stderr, "Mainmemory: <Memmapping failed>\n");
-                        return 1;
-                }
+    //vert_start=data[0x1B]<<8|data[0x1A];
+    //vert_end=data[0x19]<<8|data[0x18];
+    int stride=data[0x15]<<8|data[0x14];
+    int ofs=(data[0x28]<<8|data[0x27])>>4; // luma lines
+    int ofs2=(data[0x2c]<<8|data[0x2b])>>4;// chroma lines
+    int adr=(data[0x1f]<<24|data[0x1e]<<16|data[0x1d]<<8|data[0x1c])&0xFFFFFF00; // start of  videomem
+    int adr2=(data[0x23]<<24|data[0x22]<<16|data[0x21]<<8|data[0x20])&0xFFFFFF00;
+    int offset=adr2-adr;
 
-                //vert_start=data[0x1B]<<8|data[0x1A];
-                //vert_end=data[0x19]<<8|data[0x18];
-                int stride=data[0x15]<<8|data[0x14];
-                int ofs=(data[0x28]<<8|data[0x27])>>4; // luma lines
-                int ofs2=(data[0x2c]<<8|data[0x2b])>>4;// chroma lines
-                int adr=(data[0x1f]<<24|data[0x1e]<<16|data[0x1d]<<8|data[0x1c])&0xFFFFFF00; // start of  videomem
-                int adr2=(data[0x23]<<24|data[0x22]<<16|data[0x21]<<8|data[0x20])&0xFFFFFF00;
-                int offset=adr2-adr;
+    munmap((void*)data, 100);
 
-                munmap((void*)data, 100);
+	// Check that obtained values are sane and prevent segfaults.
+	if ((adr == 0) || (adr2 == 0) || (adr2<=adr))
+	{
+		fprintf(stderr, "Got or invalid 'adr' offsets, aborting (%x,%x)\n", adr, adr2);
+		return 1;
+	}
+	if (stride != xres)
+	{
+		fprintf(stderr, "stride != xres (%d != %d), aborting\n", stride, xres);
+		return 1;
+	}
+	if (ofs < yres)
+	{
+		fprintf(stderr, "luma lines < yres (%d < %d), aborting\n", ofs, yres);
+		return 1;
+	}
 
-		// Check that obtained values are sane and prevent segfaults.
-		if ((adr == 0) || (adr2 == 0) || (adr2<=adr))
-		{
-			fprintf(stderr, "Got or invalid 'adr' offsets, aborting (%x,%x)\n", adr, adr2);
-			return 1;
-		}
-		if (stride != xres)
-		{
-			fprintf(stderr, "stride != xres (%d != %d), aborting\n", stride, xres);
-			return 1;
-		}
-		if (ofs < yres)
-		{
-			fprintf(stderr, "luma lines < yres (%d < %d), aborting\n", ofs, yres);
-			return 1;
-		}
+	unsigned char* memory_tmp = mem_spare;	
+        volatile unsigned long *mem_dma;
+        if(!(mem_dma = (volatile unsigned long*)mmap(0, 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, DMA_MEM_ADDRESS)))
+        {
+             fprintf(stderr, "Mainmemory: <Memmapping failed> DMA control\n");
+             return 1;
+        }
 
-		unsigned char* memory_tmp = mem_spare;	
-                volatile unsigned long *mem_dma;
-                if(!(mem_dma = (volatile unsigned long*)mmap(0, 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, mem_fd, DMA_MEM_ADDRESS)))
-                {
-                                fprintf(stderr, "Mainmemory: <Memmapping failed> DMA control\n");
-                                return 1;
-                }
+        int i = 0;
+        int tmp_len = DMA_BLOCKSIZE;
+        int tmp_size = offset + stride*(ofs2+64);
+        for (i=0; i < tmp_size; i += DMA_BLOCKSIZE)
+        {
+             unsigned long *descriptor = (void*)memory_tmp;
+             if (i + DMA_BLOCKSIZE > tmp_size)
+                  tmp_len = tmp_size - i;
+             descriptor[0] = /* READ */ adr + i;
+             descriptor[1] = /* WRITE */ SPARE_RAM + 0x1000;
+             descriptor[2] = 0x40000000 | /* LEN */ tmp_len;
+             descriptor[3] = 0;
+             descriptor[4] = 0;
+             descriptor[5] = 0;
+             descriptor[6] = 0;
+             descriptor[7] = 0;
+             mem_dma[1] = /* FIRST_DESCRIPTOR */ SPARE_RAM;
+             mem_dma[3] = /* DMA WAKE CTRL */ 3;
+             mem_dma[2] = 1;
+             while (mem_dma[5] == 1)
+                 usleep(2);
+             mem_dma[2] = 0;
+       }
 
-                int i = 0;
-                int tmp_len = DMA_BLOCKSIZE;
-                int tmp_size = offset + stride*(ofs2+64);
-                for (i=0; i < tmp_size; i += DMA_BLOCKSIZE)
-                {
-                                unsigned long *descriptor = (void*)memory_tmp;
-
-                                if (i + DMA_BLOCKSIZE > tmp_size)
-                                        tmp_len = tmp_size - i;
-
-                                //printf("DMACopy: %x (%d) size: %d\n", adr+i, i, tmp_len);
-
-                                descriptor[0] = /* READ */ adr + i;
-                                descriptor[1] = /* WRITE */ SPARE_RAM + 0x1000;
-                                descriptor[2] = 0x40000000 | /* LEN */ tmp_len;
-                                descriptor[3] = 0;
-                                descriptor[4] = 0;
-                                descriptor[5] = 0;
-                                descriptor[6] = 0;
-                                descriptor[7] = 0;
-                                mem_dma[1] = /* FIRST_DESCRIPTOR */ SPARE_RAM;
-                                mem_dma[3] = /* DMA WAKE CTRL */ 3;
-                                mem_dma[2] = 1;
-                                while (mem_dma[5] == 1)
-                                        usleep(2);
-                                mem_dma[2] = 0;
-
-                 }
-
-                munmap((void *)mem_dma, 0x1000);
-                memory_tmp+=0x1000;
-                const int chr_luma_stride = 0x40;
-                int xsub=chr_luma_stride;
-                // decode luma & chroma plane or lets say sort it
-		int xtmp;
-		int ytmp;
-		int t = 0;
-                for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
-                {
+       munmap((void *)mem_dma, 0x1000);
+       memory_tmp+=0x1000;
+       const int chr_luma_stride = 0x40;
+       // decode luma & chroma plane or lets say sort it
+	int xtmp;
+	int ytmp;
+	int t = 0;
+	int yres2 = yres >> 1; // ofs is larger than yres
+	if (scale_lines == 0)
+	{
+       		int xsub=chr_luma_stride;
+		for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
+        	{
                         if ((stride-xtmp) <= chr_luma_stride)
                                 xsub=stride-xtmp;
 
@@ -198,7 +202,6 @@ int grabber_begin()
                 }
 		t = 0;
 		xsub=chr_luma_stride;
-		int yres2 = yres >> 1; // ofs is larger than yres
                 for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
                 {
                         if ((stride-xtmp) <= chr_luma_stride)
@@ -214,32 +217,72 @@ int grabber_begin()
                         // Skip the invisible lines
                         t += (ofs2 - yres2) * chr_luma_stride;
                 }
+	}
+	else
+	{
+		// scaled output
+       		int xsub=chr_luma_stride;
+		t = 0;
+		for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
+        	{
+                        if ((stride-xtmp) <= chr_luma_stride)
+                                xsub=stride-xtmp;
 
-		// COARSE mode? skip the byte swapping.
-		if ((grabber_flags & FLAG_COARSE) != 0)
-			return 0;
-
-                int count = (stride*yres) >> 2;
+                        int dat1=xtmp;
+                        for (ytmp = 0; ytmp < scale_lines; ytmp++)
+                        {
+				int t2 = ((ytmp*yres) / scale_lines) * chr_luma_stride;
+				//printf("Line=%d (%d) offs=%d (0x%x) + %d\n", ytmp, (ytmp*yres)/scale_lines, t, t, t2);
+                                memcpy(luma.data+dat1, memory_tmp+t+t2, xsub); // luma
+                                dat1+=stride;
+                        }
+			t += ofs * chr_luma_stride;
+                }
+		xsub=chr_luma_stride;
+		int yres2 = yres >> 1; // ofs is larger than yres
+		int scale_lines2 = scale_lines >> 1;
+		t = 0;
+                for (xtmp=0; xtmp < stride; xtmp += chr_luma_stride)
                 {
-			unsigned char* p = luma.data;
-        	        for (t=count; t != 0; --t)
-                	{
-				unsigned char q;
-				q = p[0]; p[0] = p[3]; p[3] = q;
-				q = p[1]; p[1] = p[2]; p[2] = q;
-                        	p += 4;
-	                }
+                        if ((stride-xtmp) <= chr_luma_stride)
+                                xsub=stride-xtmp;
+
+                        int dat1=xtmp;
+                        for (ytmp = 0; ytmp < scale_lines2; ytmp++) 
+                        {
+				int t2 = ((ytmp*yres2) / scale_lines2) * chr_luma_stride;
+                                memcpy(chroma.data+dat1,memory_tmp+offset+t+t2,xsub); // chroma
+                                dat1+=stride;
+                        }
+			t += ofs2 * chr_luma_stride;
 		}
-                count = (stride*yres2) >> 2;
-		{
-	                unsigned short* p = (unsigned short*)chroma.data;
-        	        for (t=count; t != 0; --t)
-                	{
-				unsigned short q;
-				q = p[0]; p[0] = p[1]; p[1] = q;
-                	        p += 2;
-	                }
-		}
+	}
+
+	// COARSE mode? skip the byte swapping.
+	if ((grabber_flags & FLAG_COARSE) != 0)
+		return 0;
+
+        int count = (stride*luma.height) >> 2;
+        {
+		unsigned char* p = luma.data;
+       	        for (t=count; t != 0; --t)
+               	{
+			unsigned char q;
+			q = p[0]; p[0] = p[3]; p[3] = q;
+			q = p[1]; p[1] = p[2]; p[2] = q;
+                       	p += 4;
+                }
+	}
+        count = (stride*chroma.height) >> 2;
+	{
+                unsigned short* p = (unsigned short*)chroma.data;
+       	        for (t=count; t != 0; --t)
+               	{
+			unsigned short q;
+			q = p[0]; p[0] = p[1]; p[1] = q;
+               	        p += 2;
+                }
+	}
 
     return 0;
 }

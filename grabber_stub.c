@@ -1,9 +1,6 @@
 #include <memory.h>
 #include "grabber.h"
 
-Bitmap luma;
-Bitmap chroma;
-
 const int w = 30;
 const int h = 10;
 const int stride = 32;
