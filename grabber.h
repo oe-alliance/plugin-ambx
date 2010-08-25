@@ -11,6 +11,7 @@ typedef struct _Bitmap
 extern Bitmap luma;
 extern Bitmap chroma;
 extern int grabber_flags;
+extern int scale_lines;
 
 // Called once when starting up.
 extern int grabber_initialize(void);
