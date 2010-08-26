@@ -80,23 +80,26 @@ static int grabLoop(void)
         int i;
         int x2 = 0;
         unsigned int hist[256];
+	int shift_factor = 0;
+	if (luma.height > 256)
+	{
+		// If vertical scaling is not implemented,
+		// simply process less.
+		shift_factor = 4;
+	}
         for (i = 1; i <= 5; ++i) // 5 regions from left to right
         {
-	    // speed up by processing less lines
-#	    define SPEEDSHIFT_LUMA 4
-#	    define SPEEDSHIFT_CHROMA 2
-
     	    int x1 = x2;
 	    x2 = ((i * luma.width) / 5) & 0xFFFFFFFE; // even pixels only (for chroma)
             //printf("Luma size: %dx%d (stride: %d)\n", luma.width, luma.height, luma.stride);
-    	    int avgY = avg(luma.data, x1, x2, luma.stride << SPEEDSHIFT_LUMA, luma.height >> SPEEDSHIFT_LUMA);
+    	    int avgY = avg(luma.data, x1, x2, luma.stride << shift_factor, luma.height >> shift_factor);
 
     	    memset(hist, 0, sizeof(hist));
-	    int chromacount = (chroma.width*chroma.height/2) >> SPEEDSHIFT_CHROMA;
-    	    histogram2(chroma.data, 0, chroma.width, chroma.stride << SPEEDSHIFT_CHROMA, chroma.height >> SPEEDSHIFT_CHROMA, hist);
+	    int chromacount = (chroma.width*chroma.height/2) >> shift_factor;
+    	    histogram2(chroma.data, 0, chroma.width, chroma.stride << shift_factor, chroma.height >> shift_factor, hist);
     	    int mU = median(hist, chromacount);
     	    memset(hist, 0, sizeof(hist));
-    	    histogram2(chroma.data+1, 0, chroma.width, chroma.stride << SPEEDSHIFT_CHROMA, chroma.height >> SPEEDSHIFT_CHROMA, hist);
+    	    histogram2(chroma.data+1, 0, chroma.width, chroma.stride << shift_factor, chroma.height >> shift_factor, hist);
     	    int mV = median(hist, chromacount);
 
             // printf("Region (%3d..%3d) avgY=%d mU=%d mV=%d color=#%06x\n", x1, x2, avgY, mU, mV, YUV2RGB(avgY, mU, mV));
@@ -241,7 +244,8 @@ static PyObject *startGrabber(PyObject *self, PyObject *args)
     terminateGrabber = 0;
 
     grabber_flags |= FLAG_COARSE; // no need to be precise
-    scale_lines = 64;
+    if (scale_lines == 0) // first time only...
+	    scale_lines = 64;
     int r = grabber_initialize();
     if (r != 0)
     {
@@ -333,6 +337,16 @@ static PyObject* getFpsStats(PyObject *self, PyObject *args)
 	return Py_BuildValue("ii", fps_frames, fps_usec);
 }
 
+static PyObject* setScanLines(PyObject *self, PyObject *args)
+{
+        int lines;
+        if (!PyArg_ParseTuple(args, "i", &lines))
+                return NULL;
+	if (lines > 0)
+		scale_lines = lines;
+	return Py_BuildValue("i", scale_lines);
+}
+
 static PyMethodDef MyMethods[] = {
     {"startOutput", startOutput, METH_VARARGS, "Show nifty effects, return ID."},
     {"stopOutput", stopOutput, METH_VARARGS, "Show nifty effects."},
@@ -342,6 +356,7 @@ static PyMethodDef MyMethods[] = {
     {"setFadeTime", setFadeTime, METH_VARARGS, "Set fader delay in ms."},
     {"getFadeTime", getFadeTime, METH_VARARGS, "Get fader delay in ms."},
     {"getFpsStats", getFpsStats, METH_VARARGS, "Get FPS stats, returns (frames,usec)."},
+    {"setScanLines", setScanLines, METH_VARARGS, "Set and/or return number of video lines to process."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
