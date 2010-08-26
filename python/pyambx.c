@@ -14,7 +14,7 @@
 
 #define SHOW_FPS
 
-static int faderSpeed = 250; // in ms
+static int faderSpeed = 125; // in ms
 static unsigned int fps_frames = 0; // for FPS calculation
 static unsigned int fps_usec = 0;
 
@@ -139,7 +139,7 @@ static unsigned int tick(void)
 {
     struct timeval now;
     gettimeofday(&now, NULL);
-    return now.tv_sec * 1000 + (now.tv_usec / 1000);
+    return (now.tv_sec * 1000) + (now.tv_usec / 1000);
 }
 
 static int terminateOutput = 0;
@@ -244,8 +244,6 @@ static PyObject *startGrabber(PyObject *self, PyObject *args)
     terminateGrabber = 0;
 
     grabber_flags |= FLAG_COARSE; // no need to be precise
-    if (scale_lines == 0) // first time only...
-	    scale_lines = 64;
     int r = grabber_initialize();
     if (r != 0)
     {
@@ -367,5 +365,6 @@ PyMODINIT_FUNC initpyambx(void)
     {
         fprintf(stderr, "ambx_init failed");
     }
+    scale_lines = 64;
 }
 
