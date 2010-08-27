@@ -135,11 +135,19 @@ static void* startGrabLoop(void* arg)
     return (void*)grabLoop();
 }
 
+static unsigned int tick_offset;
+static void initTick(void)
+{
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    tick_offset = now.tv_sec;
+}
+
 static unsigned int tick(void)
 {
     struct timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000) + (now.tv_usec / 1000);
+    return ((now.tv_sec-tick_offset) * 1000) + (now.tv_usec / 1000);
 }
 
 static int terminateOutput = 0;
@@ -157,6 +165,7 @@ static int run(void)
     }
     int currentTrigger = updateTrigger-1;
     int currentColors[5] = {0};
+    initTick();
     unsigned int now = tick();
     fader_commit(&fader, now, now); 
     while (!terminateOutput)
