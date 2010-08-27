@@ -90,7 +90,6 @@ int main(int argc, char** argv)
     {
 	const char* arg = argv[i];
 	if (strcmp(arg, "-c") == 0) grabber_flags |= FLAG_COARSE;
-	else if (strcmp(arg, "-s") == 0) scale_lines = 64;
     }
 
     r = grabber_initialize();
