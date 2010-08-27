@@ -50,11 +50,18 @@ static void createBitmaps(int xres, int yres)
     createBitmap(&chroma, xres, (yres+1) >> 1);
 }
 
+static int mem_fd;
 // Called once when starting up.
 int grabber_initialize()
 {
     memset(&luma, 0, sizeof(luma));
     memset(&chroma, 0, sizeof(chroma));
+    mem_fd = open("/dev/mem", O_RDONLY | O_SYNC);
+    if (mem_fd < 0)
+    {
+        fprintf(stderr, "Can't open /dev/mem \n");
+        return 1;
+    }
     return 0;
 }
 
@@ -79,18 +86,13 @@ int grabber_begin()
 	createBitmaps(xres,yres);
     }
 
-    int mem_fd = open("/dev/mem", O_RDWR|O_SYNC);
-    if (mem_fd < 0)
-    {
-        fprintf(stderr, "Can't open /dev/mem \n");
-        return 1;
-    }
     unsigned char* frame = (unsigned char*)mmap(0, 1920*1152*6, PROT_READ, MAP_SHARED, mem_fd, 0x6000000);
     if (!frame)
     {
 	fprintf(stderr, "Failed to map video memory\n");
 	return 1;
     }
+
     		const unsigned char* frame_chroma = frame + 1920*1152*5;
 
 		const unsigned char* frame_l;
@@ -171,7 +173,6 @@ int grabber_begin()
 
 		}
     munmap(frame, 1920*1152*6);
-    close(mem_fd);
     return 0;
 }
 
@@ -185,6 +186,11 @@ int grabber_end()
 int grabber_destroy()
 {
     destroyBitmaps();
+    if (mem_fd != -1)
+    {
+        close(mem_fd);
+        mem_fd = -1;
+    }
     return 0;
 }
 
