@@ -23,7 +23,7 @@ static void createBitmap(Bitmap* bm, int width, int height)
     bm->height = height;
     bm->stride = (width+127) & 0xFFFFFF80; // round to multiple of 128 
     //printf("createBitmap(%dx%d) ", width, height);
-    height = ((height+31)/32 + 1) * 32; // Compensate for extra data.
+    height = ((height+63)/64) * 64; // Compensate for extra data.
     //printf("allocate (%dx%d) = %d\n", bm->stride, height, bm->stride*height);
     bm->data = malloc(bm->stride * height);
 }
@@ -80,10 +80,22 @@ int grabber_begin()
 	fprintf(stderr, "Failed to read xres (%d)\n", xres);
 	return 1;
     }
-    if ((yres != luma.height) || (xres != luma.width))
+    if (scale_lines == 0)
     {
-	destroyBitmaps();
-	createBitmaps(xres,yres);
+        int height = ((yres+63)/64) * 64; // Compensate for extra data.
+        if ((height != luma.height) || (xres != luma.width))
+        {
+	    destroyBitmaps();
+	    createBitmaps(xres, height);
+        }
+    }
+    else
+    {
+        if((scale_lines != luma.height) || (xres != luma.width))
+        {
+            destroyBitmaps();
+            createBitmaps(xres, scale_lines);
+        }
     }
 
     unsigned char* frame = (unsigned char*)mmap(0, 1920*1152*6, PROT_READ, MAP_SHARED, mem_fd, 0x6000000);
@@ -93,22 +105,23 @@ int grabber_begin()
 	return 1;
     }
 
-    		const unsigned char* frame_chroma = frame + 1920*1152*5;
+	const unsigned char* frame_chroma = frame + 1920*1152*5;
 
-		const unsigned char* frame_l;
-                const int ypart=32;
-                const int xpart=128;
-                int ysubcount = (yres+31) / 32;
-                int ysubchromacount = ysubcount/2;
-		int xsubcount = (xres+127) / 128;
-
+	const unsigned char* frame_l;
+        const int ypart=32;
+        const int xpart=128;
+        int ysubcount = (yres+31) / 32;
+        int ysubchromacount = ysubcount/2;
+	int xsubcount = (xres+127) / 128;
+	if (scale_lines == 0)
+	{
                 int xtmp,ytmp,ysub,xsub;
 
                 // "decode" luma/chroma, there are 128x32pixel blocks inside the decoder mem
-                for (ysub=0; ysub<ysubcount; ysub++)
+                for (ysub = 0; ysub != ysubcount; ++ysub)
                 {
 			frame_l = frame + (ysub * 1920 * 32);
-                        for (xsub=0; xsub<xsubcount; xsub++)
+                        for (xsub = 0; xsub != xsubcount; ++xsub)
                         {
                                 // Even lines
                                 for (ytmp=0; ytmp<ypart; ytmp++)
@@ -172,6 +185,74 @@ int grabber_begin()
                         }
 
 		}
+	}
+	else
+	{
+		int y;
+		const unsigned char* dest_line = luma.data;
+		for (y = 0; y != scale_lines; ++y)
+		{
+			// which is the scanline we need
+			int line = (y * yres) / scale_lines;
+			int block = line >> 5;
+			int innerline = line - ( block << 5);
+			const unsigned char* first_pixel = frame + (block * (32*1920)) + innerline * 128;
+			int xsub;
+			int offset = 0;
+			if (block & 1)
+			{
+				// swap 64-byte stuff
+				for (xsub = 0; xsub != xsubcount; ++xsub)
+				{
+					memcpy(dest_line, first_pixel+64, 64); 
+					memcpy(dest_line+64, first_pixel, 64); 
+					dest_line += 128;
+					first_pixel += (128*32);
+				}
+			}
+			else
+			{
+				for (xsub = 0; xsub != xsubcount; ++xsub)
+				{
+					memcpy(dest_line, first_pixel, 128); 
+					dest_line += 128;
+					first_pixel += (128*32);
+				}
+			}
+		}
+		int chroma_lines = scale_lines >> 1;
+		int chroma_yres = yres >> 1;
+		dest_line = chroma.data;
+		for (y = 0; y != chroma_lines; ++y)
+		{
+			int line = (y * chroma_yres) / chroma_lines;
+			int block = line >> 5;
+			int innerline = line - ( block << 5);
+			const unsigned char* first_pixel = frame_chroma + (block * (32*1920)) + innerline * 128;
+			int xsub;
+			int offset = 0;
+			if (block & 1)
+			{
+				// swap 64-byte stuff
+				for (xsub = 0; xsub != xsubcount; ++xsub)
+				{
+					memcpy(dest_line, first_pixel+64, 64); 
+					memcpy(dest_line+64, first_pixel, 64); 
+					dest_line += 128;
+					first_pixel += (128*32);
+				}
+			}
+			else
+			{
+				for (xsub = 0; xsub != xsubcount; ++xsub)
+				{
+					memcpy(dest_line, first_pixel, 128); 
+					dest_line += 128;
+					first_pixel += (128*32);
+				}
+			}
+		}
+	}
     munmap(frame, 1920*1152*6);
     return 0;
 }
