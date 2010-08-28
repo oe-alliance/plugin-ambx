@@ -179,6 +179,7 @@ static int run(void)
 		abstime.tv_nsec-= 1000000000;
 	}
 	static const int region2light[5] = {0, 2, 3, 4, 1};
+	fader_update(&fader, tick());
 	for (i=0; i<5; ++i)
 	{
 		int color = 
@@ -207,7 +208,6 @@ static int run(void)
 		fader_commit(&fader, now, now + faderSpeed);
 	}	
 	pthread_mutex_unlock(&mutex); 
-	fader_update(&fader, now);
     }
 
     // turn off the lights when shutting down.
