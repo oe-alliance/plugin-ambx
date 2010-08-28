@@ -32,13 +32,14 @@ void fader_update(Fader* self, unsigned int tsNow)
 	for (i = 0; i < self->size; ++i)
 	{
 		self->current[i] = (byte)(
-                    (((int)(self->start[i]) * (tsDenom-tsDelta)) + ((int)(self->target[i]) * (tsDelta))) / tsDenom
+                    (((unsigned int)(self->start[i]) * (tsDenom-tsDelta)) + ((unsigned int)(self->target[i]) * (tsDelta))) / tsDenom
                 );
 	}
 }
 
 void fader_commit(Fader* self, unsigned int tsNow, unsigned int tsEnd)
 {
+	fader_update(self, tsNow);
 	self->tsBegin = tsNow;
 	self->tsEnd = tsEnd;
 	memcpy(self->start, self->current, self->size * sizeof(byte));
