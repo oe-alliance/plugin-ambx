@@ -215,6 +215,7 @@ static int run(void)
     {
 	ambx_set_light(ambxId, i, 0);
     }
+    fader_free(&fader);
     return 0;
 }
 
