@@ -141,6 +141,12 @@ int grabber_begin()
 		fprintf(stderr, "luma lines < yres (%d < %d), aborting\n", ofs, yres);
 		return 1;
 	}
+        int tmp_size = offset + stride*(ofs2+64);
+	if (tmp_size > 2 * DMA_BLOCKSIZE)
+	{
+		fprintf(stderr, "DMA length exceeds maximum (0x%x)\n", tmp_size);
+		return 1;
+	}
 
 	unsigned char* memory_tmp = mem_spare;	
         volatile unsigned long *mem_dma;
@@ -152,7 +158,6 @@ int grabber_begin()
 
         int i = 0;
         int tmp_len = DMA_BLOCKSIZE;
-        int tmp_size = offset + stride*(ofs2+64);
         for (i=0; i < tmp_size; i += DMA_BLOCKSIZE)
         {
              unsigned long *descriptor = (void*)memory_tmp;
