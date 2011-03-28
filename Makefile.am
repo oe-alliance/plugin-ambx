@@ -19,4 +19,4 @@ grabvid_LDADD = -lgrabproc
 libambx_la_SOURCES = ambxlib.c ambxlib.h
 libambx_la_LIBADD = -lusb
 
-libgrabproc_la_SOURCES = grabber.h grabber_common.c grabber_@MACHINE@.c colorproc.c colorproc.h filehelper.h yuvrgb.h yuvrgb.c filehelper.h filehelper.c
+libgrabproc_la_SOURCES = grabber.h grabber_common.c grabber_@CHIPSET@.c colorproc.c colorproc.h filehelper.h yuvrgb.h yuvrgb.c filehelper.h filehelper.c
