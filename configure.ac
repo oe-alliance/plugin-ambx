@@ -3,10 +3,10 @@ AC_INIT(amBX,0.0.4,nowhere,amBXlib)
 AM_INIT_AUTOMAKE()
 
 AC_ARG_WITH(machine,
-        [  --with-machine=MACHINE    machine target for compilation [[dm7025,dm8000]]],
-        [MACHINE="$withval"],[MACHINE="stub"])
-AC_SUBST(MACHINE)
-if test "${MACHINE}" = "dm7025"
+        [  --with-chipset=CHIPSET    chipset target for compilation [[bcm7400,bcm7405,...]]],
+        [CHIPSET="$withval"],[CHIPSET="stub"])
+AC_SUBST(CHIPSET)
+if test "${CHIPSET}" = "ati"
 then
   AC_DEFINE(COLOR_BGR,1,[Use BGR colorspace])
 else
