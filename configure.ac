@@ -2,7 +2,7 @@ AC_PREREQ(2.52)
 AC_INIT(amBX,0.0.4,nowhere,amBXlib)
 AM_INIT_AUTOMAKE()
 
-AC_ARG_WITH(machine,
+AC_ARG_WITH(chipset,
         [  --with-chipset=CHIPSET    chipset target for compilation [[bcm7400,bcm7405,...]]],
         [CHIPSET="$withval"],[CHIPSET="stub"])
 AC_SUBST(CHIPSET)
