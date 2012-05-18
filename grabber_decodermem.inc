@@ -12,7 +12,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/types.h>
-#include <linux/videodev.h>
 #include <linux/fb.h>
 
 #include "grabber.h"
