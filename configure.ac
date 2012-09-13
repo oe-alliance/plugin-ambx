@@ -5,6 +5,12 @@ AM_INIT_AUTOMAKE()
 AC_ARG_WITH(chipset,
         [  --with-chipset=CHIPSET    chipset target for compilation [[bcm7400,bcm7405,...]]],
         [CHIPSET="$withval"],[CHIPSET="stub"])
+
+if test ! -e grabber_${CHIPSET}.c
+then
+  CHIPSET="stub"
+fi
+
 AC_SUBST(CHIPSET)
 if test "${CHIPSET}" = "ati"
 then
